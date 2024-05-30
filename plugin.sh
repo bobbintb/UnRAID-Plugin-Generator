@@ -38,7 +38,7 @@ package_plugin() {
   cp -r "${plugin_src}"* "$dest"
   echo "Archiving..."
   pushd ./tmp
-  tar -cJf "${name}".txz --owner=0 --group=0 /
+  tar -cJf "${name}".txz --owner=0 --group=0 ./
   popd
 }
 
