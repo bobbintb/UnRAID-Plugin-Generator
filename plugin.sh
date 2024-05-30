@@ -22,7 +22,7 @@ while IFS= read -r line; do
 done < $CONFIG_FILE
 
 for key in "${keys[@]}"; do
-  new_key=$(printf "%-${target_key_length}s" "$key")
+  new_key=$(printf '%-${target_key_length}s' '"$key"')
   echo "$new_key"
   #new_value="${config[$key]}"
   PLUGIN="${PLUGIN}
@@ -31,7 +31,6 @@ for key in "${keys[@]}"; do
   PLUGIN="${PLUGIN}
 ]>"
 }
-
 
 package_plugin() {
   dest="./tmp/usr/local/emhttp/plugins/${name}"
