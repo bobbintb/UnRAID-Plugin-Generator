@@ -91,4 +91,4 @@ PLUGIN="${PLUGIN}
 
 </PLUGIN>"
 
-echo "${PLUGIN}"
+echo "${PLUGIN}" > "${OUTPUT_FILE}"
