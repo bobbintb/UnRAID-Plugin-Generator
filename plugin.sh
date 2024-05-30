@@ -14,7 +14,7 @@ else
   exit 1
 fi
 
-OUTPUT_FILE="${config['name']:1:-1}.plg"
+OUTPUT_FILE="${name}.plg"
 
 read_and_modify_config() {
   longest_key_length=0
