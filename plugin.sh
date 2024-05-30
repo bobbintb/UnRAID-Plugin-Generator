@@ -17,13 +17,14 @@ fi
 OUTPUT_FILE="${name}.plg"
 
 read_and_modify_config() {
-  longest_key_length=0
-  
+longest_key_length=$(awk -F'=' '/=/{l=length($1); if(l>max) max=l} END {print max}' "$CONFIG_FILE")
+
   # Find the length of the longest key
-  for key in "${keys[@]}"; do
-    if [[ ${#key} -gt $longest_key_length ]]; then
-      longest_key_length=${#key}
-    fi
+  for key in $(compgen -v); do
+    
+    #if [[ ${#key} -gt $longest_key_length ]]; then
+    #  longest_key_length=${#key}
+    #fi
   done
   
   # Calculate the target length for keys
