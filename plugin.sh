@@ -40,8 +40,6 @@ package_plugin() {
   else
     echo "Deletion of rm ${name}.txz failed."
   fi
-
-  rm ${name}.txz
   dest="./tmp/usr/local/emhttp/plugins/${name}"
   mkdir -p "$dest"
   echo "Copying files to temporary folder to archive..."
