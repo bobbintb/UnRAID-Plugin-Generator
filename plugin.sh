@@ -5,16 +5,10 @@ PLUGIN="<?xml version='1.0' standalone='yes'?>
 <!DOCTYPE PLUGIN ["
 
 # Load the config file
+
 CONFIG_FILE="./plugin.cfg"
 if [[ -f "$CONFIG_FILE" ]]; then
-  declare -A config
-  keys=()
-  while IFS="=" read -r key value; do
-    [[ $key == \#* ]] || [[ -z $key ]] && continue
-    config[$key]=$value
-    keys+=("$key")
-  done < "$CONFIG_FILE"
-OUTPUT_FILE="${config['name']:1:-1}.plg"
+  . $CONFIG_FILE
 else
   echo "Config file not found: $CONFIG_FILE"
   exit 1
@@ -42,7 +36,22 @@ read_and_modify_config() {
 ]>"
 }
 
+package_plugin() {
+          dest="./tmp/usr/local/emhttp/plugins/${name}"
+          mkdir -p "$dest"
+          echo "Copying files to temporary folder to archive..."
+          cp -r ${plugin_src}* $dest
+          echo "Archiving..."
+          7z a -ttar -so -an ./tmp/usr | 7z a -txz -si ${name}.txz
+}
+
+
 read_and_modify_config
+package_plugin
+md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
+echo ${md5Hash}
+
+
 if [[ -e "./sh/pre-install.sh" ]]; then
   PLUGIN="${PLUGIN}
 
@@ -87,8 +96,15 @@ $(<./sh/remove.sh)
 </FILE>"
 fi
 
+if [[ -e "./sh/files.txt" ]]; then
+  PLUGIN="${PLUGIN}
+
+<!-- SOURCE FILES -->
+$(<./sh/files.txt)"
+fi
+
 PLUGIN="${PLUGIN}
 
 </PLUGIN>"
 
-echo "${PLUGIN}" > "${OUTPUT_FILE}"
+echo "${PLUGIN}"
