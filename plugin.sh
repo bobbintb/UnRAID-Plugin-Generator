@@ -38,7 +38,8 @@ package_plugin() {
           7z a -ttar -so -an ./tmp/usr | 7z a -txz -si ${name}.txz
 }
 
-
+rm $OUTPUT_FILE
+rm ${name}.txz
 read_and_modify_config
 package_plugin
 md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
