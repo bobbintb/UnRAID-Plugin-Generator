@@ -1,11 +1,6 @@
 #!/bin/bash
 
-PLUGIN="<?xml version='1.0' standalone='yes'?>
-
-<!DOCTYPE PLUGIN ["
-
 # Load the config file
-
 CONFIG_FILE="./plugin.cfg"
 if [[ -f "$CONFIG_FILE" ]]; then
   . $CONFIG_FILE
@@ -21,7 +16,7 @@ else
   echo "Deletion of rm ${OUTPUT_FILE} failed."
 fi
 
-read_and_modify_config() {
+create_entity() {
 longest_key_length=$(awk -F'=' '/=/{l=length($1); if(l>max) max=l} END {print max}' "$CONFIG_FILE")
 target_key_length=$((longest_key_length + 1))
 for key in "${keys[@]}"; do
@@ -48,11 +43,14 @@ package_plugin() {
   7z a -ttar -so -an ./tmp/usr | 7z a -txz -si ${name}.txz
 }
 
-read_and_modify_config
 package_plugin
 md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
-echo ${md5Hash}
 
+PLUGIN="<?xml version='1.0' standalone='yes'?>
+
+<!DOCTYPE PLUGIN ["
+
+create_entity
 
 if [[ -e "./sh/pre-install.sh" ]]; then
   PLUGIN="${PLUGIN}
