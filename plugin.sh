@@ -24,7 +24,6 @@ done < $CONFIG_FILE
 for key in "${keys[@]}"; do
   new_key=$(printf "%-${target_key_length}s" "$key")
   echo "$new_key"
-  #new_value="${config[$key]}"
   PLUGIN="${PLUGIN}
 <!ENTITY ${new_key}\"${!key}\">"
   done
