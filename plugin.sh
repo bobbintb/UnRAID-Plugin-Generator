@@ -14,6 +14,8 @@ else
   exit 1
 fi
 
+OUTPUT_FILE="${config['name']:1:-1}.plg"
+
 read_and_modify_config() {
   longest_key_length=0
   
@@ -107,4 +109,4 @@ PLUGIN="${PLUGIN}
 
 </PLUGIN>"
 
-echo "${PLUGIN}"
+echo "${PLUGIN}" > "${OUTPUT_FILE}"
