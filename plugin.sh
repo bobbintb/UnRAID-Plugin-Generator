@@ -13,24 +13,33 @@ OUTPUT_FILE="${name}.plg"
 
 create_entity() {
 longest_key_length=$(awk -F'=' '/=/{l=length($1); if(l>max) max=l} END {print max}' "$CONFIG_FILE")
-target_key_length=$((longest_key_length + 1))
+target_key_length=$((longest_key_length + 3))
+
+while IFS= read -r line; do
+    if [[ $line == *"="* ]]; then
+        keys+=("${line%%=*}")
+    fi
+done < $CONFIG_FILE
+
 for key in "${keys[@]}"; do
   new_key=$(printf "%-${target_key_length}s" "$key")
-  new_value="${config[$key]}"
+  echo "$new_key"
+  #new_value="${config[$key]}"
   PLUGIN="${PLUGIN}
-<!ENTITY ${new_key}${new_value}>"
+<!ENTITY ${new_key}${!key}>"
   done
   PLUGIN="${PLUGIN}
 ]>"
 }
 
+
 package_plugin() {
   dest="./tmp/usr/local/emhttp/plugins/${name}"
   mkdir -p "$dest"
   echo "Copying files to temporary folder to archive..."
-  cp -r ${plugin_src}* $dest
+  cp -r "${plugin_src}"* "$dest"
   echo "Archiving..."
-  7z a -ttar -so -an ./tmp/usr | 7z a -txz -si ${name}.txz -y
+  7z a -ttar -so -an ./tmp/usr | 7z a -txz -si "${name}".txz -y
 }
 
 package_plugin
