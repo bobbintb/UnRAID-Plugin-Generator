@@ -10,11 +10,6 @@ else
 fi
 
 OUTPUT_FILE="${name}.plg"
-if rm "${OUTPUT_FILE}"; then
-  echo "Deletion of rm ${OUTPUT_FILE} successful."
-else
-  echo "Deletion of rm ${OUTPUT_FILE} failed."
-fi
 
 create_entity() {
 longest_key_length=$(awk -F'=' '/=/{l=length($1); if(l>max) max=l} END {print max}' "$CONFIG_FILE")
@@ -30,17 +25,12 @@ for key in "${keys[@]}"; do
 }
 
 package_plugin() {
-  if rm "${name}.txz"; then
-    echo "Deletion of rm ${name}.txz successful."
-  else
-    echo "Deletion of rm ${name}.txz failed."
-  fi
   dest="./tmp/usr/local/emhttp/plugins/${name}"
   mkdir -p "$dest"
   echo "Copying files to temporary folder to archive..."
   cp -r ${plugin_src}* $dest
   echo "Archiving..."
-  7z a -ttar -so -an ./tmp/usr | 7z a -txz -si ${name}.txz
+  7z a -ttar -so -an ./tmp/usr | 7z a -txz -si ${name}.txz -y
 }
 
 package_plugin
