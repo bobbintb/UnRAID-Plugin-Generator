@@ -51,6 +51,14 @@ PLUGIN="<?xml version='1.0' standalone='yes'?>
 
 create_entity
 
+PLUGIN="${PLUGIN}
+<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="fa-search-minus" min="6.1.9">
+
+<CHANGES>
+##&name;
+
+</CHANGES>"
+
 if [[ -e "./sh/pre-install.sh" ]]; then
   PLUGIN="${PLUGIN}
 
