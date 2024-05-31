@@ -37,7 +37,9 @@ package_plugin() {
   echo "Copying files to temporary folder to archive..."
   cp -r "${plugin_src}"* "$dest"
   echo "Archiving..."
-  tar -cJf "${name}.txz" -C ./tmp .
+  pushd ./tmp
+  tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
+  popd
 }
 
 package_plugin
