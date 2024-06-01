@@ -59,8 +59,8 @@ package_plugin() {
   rm -dr ./tmp
 }
 
-#package_plugin
-#md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
+package_plugin
+md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 
 PLUGIN="<?xml version='1.0' standalone='yes'?>"$'\n'
 PLUGIN+=""$'\n'
@@ -133,3 +133,5 @@ PLUGIN="${PLUGIN}
 </PLUGIN>"
 
 echo "${PLUGIN}" > "${OUTPUT_FILE}"
+
+sed -i "s/^<!ENTITY MD5 .*\">/<!ENTITY MD5 \"$md5Hash\">/" ${OUTPUT_FILE}
