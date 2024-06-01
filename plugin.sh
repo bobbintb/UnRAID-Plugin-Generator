@@ -44,6 +44,8 @@ for key in "${keys[@]}"; do
   new_key=$(printf "%-${max}s" "$key")
   PLUGIN+="<!ENTITY ${new_key}\"${!key}\">"$'\n'
   done
+  new_key=$(printf "%-${max}s" "")
+  PLUGIN+="<!ENTITY $(printf "%-${max}s" "MD5")\"\""$'\n'
   PLUGIN+="]>"$'\n'
 }
 
