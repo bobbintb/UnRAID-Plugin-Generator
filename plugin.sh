@@ -69,7 +69,7 @@ PLUGIN+="<!DOCTYPE PLUGIN ["$'\n'
 create_entity
 PLUGIN+="<PLUGIN" 
 for key in "${keys[@]}"; do
-  plugin_tag+=" ${key}=\"&${key};\""
+  PLUGIN+=" ${key}=\"&${key};\""
 done
 PLUGIN+="></PLUGIN>"
 
