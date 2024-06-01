@@ -56,6 +56,7 @@ package_plugin() {
   pushd ./tmp
   tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
   popd
+  rm -dr ./tmp
 }
 
 #package_plugin
