@@ -34,23 +34,17 @@ fi
 OUTPUT_FILE="${name}.plg"
 
 create_entity() {
-longest_key_length=$(awk -F'=' '/=/{l=length($1); if(l>max) max=l} END {print max}' "$config")
-target_key_length=$((longest_key_length + 3))
-
 while IFS= read -r line; do
     if [[ $line == *"="* ]]; then
         keys+=("${line%%=*}")
     fi
 done < $config
-
+max=$(( $(printf "%s\n" "${keys[@]}" | awk '{ print length }' | sort -nr | head -1) + 3 ))
 for key in "${keys[@]}"; do
-  new_key=$(printf "%-${target_key_length}s" "$key")
-  echo "$new_key"
-  PLUGIN="${PLUGIN}
-<!ENTITY ${new_key}\"${!key}\">"
+  new_key=$(printf "%-${max}s" "$key")
+  PLUGIN+="<!ENTITY ${new_key}\"${!key}\">"$'\n'
   done
-  PLUGIN="${PLUGIN}
-]>"
+  PLUGIN+="]>"$'\n'
 }
 
 package_plugin() {
@@ -64,22 +58,23 @@ package_plugin() {
   popd
 }
 
-package_plugin
-md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
+#package_plugin
+#md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 
-PLUGIN="<?xml version='1.0' standalone='yes'?>
-
-<!DOCTYPE PLUGIN ["
+PLUGIN="<?xml version='1.0' standalone='yes'?>"$'\n'
+PLUGIN+=""$'\n'
+PLUGIN+="<!DOCTYPE PLUGIN ["$'\n'
 
 create_entity
+PLUGIN+="<PLUGIN" 
+for key in "${keys[@]}"; do
+  plugin_tag+=" ${key}=\"&${key};\""
+done
+PLUGIN+="></PLUGIN>"
 
-PLUGIN="${PLUGIN}
-<PLUGIN name="&name;" author="&author;" version="&version;" launch="&launch;" pluginURL="&pluginURL;" icon="fa-search-minus" min="6.1.9">
+echo "${PLUGIN}"
 
-<CHANGES>
-##&name;
 
-</CHANGES>"
 
 if [[ -e "./sh/pre-install.sh" ]]; then
   PLUGIN="${PLUGIN}
