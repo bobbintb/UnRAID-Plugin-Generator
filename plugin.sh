@@ -134,4 +134,4 @@ PLUGIN="${PLUGIN}
 
 echo "${PLUGIN}" > "${OUTPUT_FILE}"
 
-sed -i "s/^<!ENTITY MD5 .*\">/<!ENTITY MD5 \"$md5Hash\">/" ${OUTPUT_FILE}
+sed -i 's/^\(<!ENTITY MD5 "\).*\("\)/\1'"$REPLACEMENT"'\2/' ${OUTPUT_FILE}
