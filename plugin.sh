@@ -158,4 +158,4 @@ echo "${PLUGIN}" > "${OUTPUT_FILE}"
 md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 echo $md5Hash
 sed -i 's/\(<!ENTITY\s\+MD5\s\+"\)[^"]*\(".*\)/\1'"$md5Hash"'\2/' ${OUTPUT_FILE}
-sed -i 's/<!ENTITY version   \s*"[^"]*"/<!ENTITY version   "'"$curdate"'"/' ${OUTPUT_FILE}
+sed -i 's/\(<!ENTITY\s\+version\s\+"\)[^"]*\(".*\)/\1'"$curdate"'\2/' ${OUTPUT_FILE}
