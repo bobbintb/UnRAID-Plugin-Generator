@@ -77,7 +77,9 @@ done
 PLUGIN+=">"$'\n'$'\n'
 
 changes=$(awk '/<CHANGES>/,/<\/CHANGES>/' "$OUTPUT_FILE" | sed '1d;$d')
+PLUGIN+="<CHANGES>"$'\n'
 PLUGIN+="${changes}"$'\n'
+PLUGIN+="</CHANGES>"$'\n'
 
 if [[ -e "./sh/files.txt" ]]; then
   PLUGIN+="<!-- SOURCE FILES -->
