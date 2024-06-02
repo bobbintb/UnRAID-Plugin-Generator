@@ -90,6 +90,7 @@ date(){
 }
 ########################################
 package_plugin
+date
 
 PLUGIN="<?xml version='1.0' standalone='yes'?>"$'\n'
 PLUGIN+=""$'\n'
