@@ -63,6 +63,31 @@ for key in "${keys[@]}"; do
   new_key=$(printf "%-${max}s" "")
   PLUGIN+="]>"$'\n'
 }
+
+#######################################
+date(){
+# get current date and previous version
+          curdate=$(date +"%Y.%m.%d")
+          datepattern='ENTITY version\s+"([^"]+)"'
+          echo "Current date: ${curdate}"
+          previousVersion=$(grep -oP '<!ENTITY version\s*"\K[^"]*' $plg)
+          echo "Previous version: ${previousVersion}"
+
+          # determine new version
+          if [[ $curdate == $previousVersion ]]; then
+          curdate+="a"
+          echo "New version: ${curdate}"
+          fi
+          if [[ $curdate == ${previousVersion%?} && "$previousVersion" =~ [[:alpha:]]$ ]]; then
+          extracted_letter=${previousVersion: -1}
+          echo "Previous sub-version: ${extracted_letter}"
+          ascii_code=$(printf "%d" "'$extracted_letter")
+          next_ascii_code=$((ascii_code + 1))
+          next_letter=$(printf \\$(printf '%03o' "$next_ascii_code"))
+          curdate+="$next_letter"
+          echo "New version: ${curdate}"
+          fi
+}
 ########################################
 package_plugin
 
@@ -133,3 +158,4 @@ echo "${PLUGIN}" > "${OUTPUT_FILE}"
 md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 echo $md5Hash
 sed -i 's/\(<!ENTITY\s\+MD5\s\+"\)[^"]*\(".*\)/\1'"$md5Hash"'\2/' ${OUTPUT_FILE}
+sed -i 's/<!ENTITY version   \s*"[^"]*"/<!ENTITY version   "'"$curdate"'"/' ${OUTPUT_FILE}
