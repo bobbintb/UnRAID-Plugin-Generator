@@ -74,8 +74,7 @@ PLUGIN+="<PLUGIN"
 for key in "${keys[@]}"; do
   PLUGIN+=" ${key}=\"&${key};\""
 done
-PLUGIN+="></PLUGIN>"$'\n'
-
+PLUGIN+=">"$'\n'$'\n'
 PLUGIN+="<CHANGES/>"$'\n'
 
 if [[ -e "./sh/files.txt" ]]; then
