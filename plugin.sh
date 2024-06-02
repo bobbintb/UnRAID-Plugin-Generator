@@ -51,14 +51,14 @@ while IFS= read -r line; do
         keys+=("${line%%=*}")
     fi
 done < $config
+keys+=("version")
+keys+=("MD5")
 max=$(( $(printf "%s\n" "${keys[@]}" | awk '{ print length }' | sort -nr | head -1) + 3 ))
 for key in "${keys[@]}"; do
   new_key=$(printf "%-${max}s" "$key")
   PLUGIN+="<!ENTITY ${new_key}\"${!key}\">"$'\n'
   done
   new_key=$(printf "%-${max}s" "")
-  PLUGIN+="<!ENTITY $(printf "%-${max}s" "version")\"\">"$'\n'
-  PLUGIN+="<!ENTITY $(printf "%-${max}s" "MD5")\"\">"$'\n'
   PLUGIN+="]>"$'\n'
 }
 
