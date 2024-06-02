@@ -37,7 +37,7 @@ package_plugin() {
   dest="./tmp/usr/local/emhttp/plugins/${name}"
   mkdir -p "$dest"
   echo "Copying files to temporary folder to archive..."
-  cp -r "${plugin_src}"* "$dest"
+  cp -r ./src/* "$dest"
   echo "Archiving..."
   pushd ./tmp
   tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
