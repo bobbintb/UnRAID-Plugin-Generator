@@ -33,6 +33,18 @@ fi
 
 OUTPUT_FILE="${name}.plg"
 
+package_plugin() {
+  dest="./tmp/usr/local/emhttp/plugins/${name}"
+  mkdir -p "$dest"
+  echo "Copying files to temporary folder to archive..."
+  cp -r "${plugin_src}"* "$dest"
+  echo "Archiving..."
+  pushd ./tmp
+  tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
+  popd
+  rm -dr ./tmp
+}
+
 create_entity() {
 while IFS= read -r line; do
     if [[ $line == *"="* ]]; then
@@ -50,19 +62,10 @@ for key in "${keys[@]}"; do
   PLUGIN+="]>"$'\n'
 }
 
-package_plugin() {
-  dest="./tmp/usr/local/emhttp/plugins/${name}"
-  mkdir -p "$dest"
-  echo "Copying files to temporary folder to archive..."
-  cp -r "${plugin_src}"* "$dest"
-  echo "Archiving..."
-  pushd ./tmp
-  tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
-  popd
-  rm -dr ./tmp
-}
+
 
 package_plugin
+
 md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 
 PLUGIN="<?xml version='1.0' standalone='yes'?>"$'\n'
@@ -74,11 +77,14 @@ PLUGIN+="<PLUGIN"
 for key in "${keys[@]}"; do
   PLUGIN+=" ${key}=\"&${key};\""
 done
-PLUGIN+="></PLUGIN>"
+PLUGIN+="></PLUGIN>"$'\n'
 
-echo "${PLUGIN}"
+PLUGIN+="<CHANGES/>"$'\n'
 
-
+if [[ -e "./sh/files.txt" ]]; then
+  PLUGIN+="<!-- SOURCE FILES -->
+$(<./sh/files.txt)"$'\n'
+fi
 
 if [[ -e "./sh/pre-install.sh" ]]; then
   PLUGIN+="<!-- PRE-INSTALL SCRIPT -->
@@ -116,12 +122,7 @@ $(<./sh/remove.sh)
 </FILE>"$'\n'
 fi
 
-if [[ -e "./sh/files.txt" ]]; then
-  PLUGIN="${PLUGIN}
 
-<!-- SOURCE FILES -->
-$(<./sh/files.txt)"
-fi
 
 PLUGIN+="</PLUGIN>"
 
