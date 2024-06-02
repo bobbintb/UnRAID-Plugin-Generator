@@ -23,7 +23,7 @@ config="./plugin.cfg"
 OPTIONS=$(getopt -o a:c:i:m:n:r:u:v:l:x:h --long author:,config:,input:,md5:,name:,repo:,url:,version:,min:,max:,help -- "$@")
 eval set -- "$OPTIONS"
 
-# Load the config file
+################################### Load the config file
 if [[ -f "$config" ]]; then
   . $config
 else
@@ -33,6 +33,7 @@ fi
 
 OUTPUT_FILE="${name}.plg"
 
+####################################
 package_plugin() {
   dest="./tmp/usr/local/emhttp/plugins/${name}"
   mkdir -p "$dest"
@@ -45,6 +46,7 @@ package_plugin() {
   rm -dr ./tmp
 }
 
+##########################################
 create_entity() {
 while IFS= read -r line; do
     if [[ $line == *"="* ]]; then
@@ -61,7 +63,7 @@ for key in "${keys[@]}"; do
   new_key=$(printf "%-${max}s" "")
   PLUGIN+="]>"$'\n'
 }
-
+########################################
 package_plugin
 
 PLUGIN="<?xml version='1.0' standalone='yes'?>"$'\n'
@@ -78,9 +80,11 @@ PLUGIN+=">"$'\n'$'\n'
 
 changes=$(awk '/<CHANGES>/,/<\/CHANGES>/' "$OUTPUT_FILE" | sed '1d;$d')
 PLUGIN+="<CHANGES>"$'\n'
+PLUGIN+="${{ github.event.head_commit.message }}"$'\n'
 PLUGIN+="${changes}"$'\n'
 PLUGIN+="</CHANGES>"$'\n'
 
+#####################################
 if [[ -e "./sh/files.txt" ]]; then
   PLUGIN+="<!-- SOURCE FILES -->
 $(<./sh/files.txt)"$'\n'
@@ -123,7 +127,7 @@ $(<./sh/remove.sh)
 fi
 
 PLUGIN+="</PLUGIN>"
-
+###############################################
 echo "${PLUGIN}" > "${OUTPUT_FILE}"
 
 md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
