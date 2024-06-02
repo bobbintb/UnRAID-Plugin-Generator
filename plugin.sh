@@ -70,7 +70,7 @@ PLUGIN+=""$'\n'
 PLUGIN+="<!DOCTYPE PLUGIN ["$'\n'
 
 create_entity
-PLUGIN+="<PLUGIN" 
+PLUGIN+="<PLUGIN"
 for key in "${keys[@]}"; do
   PLUGIN+=" ${key}=\"&${key};\""
 done
@@ -81,47 +81,39 @@ echo "${PLUGIN}"
 
 
 if [[ -e "./sh/pre-install.sh" ]]; then
-  PLUGIN="${PLUGIN}
-
-<!-- PRE-INSTALL SCRIPT -->
+  PLUGIN+="<!-- PRE-INSTALL SCRIPT -->
 <FILE Run="/bin/bash" Method="install">
 <INLINE>
 $(<./sh/pre-install.sh)
 </INLINE>
-</FILE>"
+</FILE>"$'\n'
 fi
 
 if [[ -e "./sh/install.sh" ]]; then
-  PLUGIN="${PLUGIN}
-
-<!-- INSTALL SCRIPT -->
+  PLUGIN+="<!-- INSTALL SCRIPT -->
 <FILE Run="/bin/bash" Method="install">
 <INLINE>
 $(<./sh/install.sh)
 </INLINE>
-</FILE>"
+</FILE>"$'\n'
 fi
 
 if [[ -e "./sh/post-install.sh" ]]; then
-  PLUGIN="${PLUGIN}
-
-<!-- POST-INSTALL SCRIPT -->
+  PLUGIN+="<!-- POST-INSTALL SCRIPT -->
 <FILE Run="/bin/bash" Method="install">
 <INLINE>
 $(<./sh/post-install.sh)
 </INLINE>
-</FILE>"
+</FILE>"$'\n'
 fi
 
 if [[ -e "./sh/remove.sh" ]]; then
-  PLUGIN="${PLUGIN}
-
-<!-- REMOVE SCRIPT -->
+  PLUGIN+="<!-- REMOVE SCRIPT -->
 <FILE Run="/bin/bash" Method="remove">
 <INLINE>
 $(<./sh/remove.sh)
 </INLINE>
-</FILE>"
+</FILE>"$'\n'
 fi
 
 if [[ -e "./sh/files.txt" ]]; then
@@ -131,9 +123,7 @@ if [[ -e "./sh/files.txt" ]]; then
 $(<./sh/files.txt)"
 fi
 
-PLUGIN="${PLUGIN}
-
-</PLUGIN>"
+PLUGIN+="</PLUGIN>"
 
 echo "${PLUGIN}" > "${OUTPUT_FILE}"
 
