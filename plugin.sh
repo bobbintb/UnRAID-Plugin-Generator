@@ -123,4 +123,5 @@ PLUGIN+="</PLUGIN>"
 echo "${PLUGIN}" > "${OUTPUT_FILE}"
 
 md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
-sed -i 's/^\(<!ENTITY MD5 "\).*\("\)/\1'"$md5sum"'\2/' ${OUTPUT_FILE}
+echo $md5Hash
+sed -i 's/^\(<!ENTITY MD5 "\).*\("\)/\1'"$md5Hash"'\2/' ${OUTPUT_FILE}
