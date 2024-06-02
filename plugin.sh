@@ -65,7 +65,7 @@ for key in "${keys[@]}"; do
 }
 
 #######################################
-date(){
+getver(){
 # get current date and previous version
           curdate=$(date +"%Y.%m.%d")
           datepattern='ENTITY version\s+"([^"]+)"'
@@ -90,7 +90,7 @@ date(){
 }
 ########################################
 package_plugin
-date
+getver
 
 PLUGIN="<?xml version='1.0' standalone='yes'?>"$'\n'
 PLUGIN+=""$'\n'
