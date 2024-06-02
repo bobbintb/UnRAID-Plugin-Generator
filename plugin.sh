@@ -106,6 +106,7 @@ PLUGIN+=">"$'\n'$'\n'
 
 changes=$(awk '/<CHANGES>/,/<\/CHANGES>/' "$OUTPUT_FILE" | sed '1d;$d')
 PLUGIN+="<CHANGES>"$'\n'
+PLUGIN+="$curdate"$'\n'
 PLUGIN+="$COMMIT_MESSAGE"$'\n'
 PLUGIN+="${changes}"$'\n'
 PLUGIN+="</CHANGES>"$'\n'$'\n'
