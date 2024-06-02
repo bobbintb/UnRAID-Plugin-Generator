@@ -75,7 +75,9 @@ for key in "${keys[@]}"; do
   PLUGIN+=" ${key}=\"&${key};\""
 done
 PLUGIN+=">"$'\n'$'\n'
-PLUGIN+="<CHANGES/>"$'\n'
+
+changes=$(awk '/<CHANGES>/,/<\/CHANGES>/' "$OUTPUT_FILE" | sed '1d;$d')
+PLUGIN+="${changes}"$'\n'
 
 if [[ -e "./sh/files.txt" ]]; then
   PLUGIN+="<!-- SOURCE FILES -->
