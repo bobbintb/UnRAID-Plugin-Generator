@@ -62,17 +62,14 @@ for key in "${keys[@]}"; do
   PLUGIN+="]>"$'\n'
 }
 
-
-
 package_plugin
-
-md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 
 PLUGIN="<?xml version='1.0' standalone='yes'?>"$'\n'
 PLUGIN+=""$'\n'
 PLUGIN+="<!DOCTYPE PLUGIN ["$'\n'
 
 create_entity
+
 PLUGIN+="<PLUGIN"
 for key in "${keys[@]}"; do
   PLUGIN+=" ${key}=\"&${key};\""
@@ -122,10 +119,9 @@ $(<./sh/remove.sh)
 </FILE>"$'\n'
 fi
 
-
-
 PLUGIN+="</PLUGIN>"
 
 echo "${PLUGIN}" > "${OUTPUT_FILE}"
 
-sed -i 's/^\(<!ENTITY MD5 "\).*\("\)/\1'"$REPLACEMENT"'\2/' ${OUTPUT_FILE}
+md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
+sed -i 's/^\(<!ENTITY MD5 "\).*\("\)/\1'"$md5sum"'\2/' ${OUTPUT_FILE}
