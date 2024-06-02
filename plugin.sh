@@ -88,7 +88,7 @@ if [[ -e "./sh/pre-install.sh" ]]; then
 <INLINE>
 $(<./sh/pre-install.sh)
 </INLINE>
-</FILE>"$'\n'
+</FILE>"$'\n'$'\n'
 fi
 
 if [[ -e "./sh/install.sh" ]]; then
@@ -97,7 +97,7 @@ if [[ -e "./sh/install.sh" ]]; then
 <INLINE>
 $(<./sh/install.sh)
 </INLINE>
-</FILE>"$'\n'
+</FILE>"$'\n'$'\n'
 fi
 
 if [[ -e "./sh/post-install.sh" ]]; then
@@ -106,7 +106,7 @@ if [[ -e "./sh/post-install.sh" ]]; then
 <INLINE>
 $(<./sh/post-install.sh)
 </INLINE>
-</FILE>"$'\n'
+</FILE>"$'\n'$'\n'
 fi
 
 if [[ -e "./sh/remove.sh" ]]; then
@@ -115,7 +115,7 @@ if [[ -e "./sh/remove.sh" ]]; then
 <INLINE>
 $(<./sh/remove.sh)
 </INLINE>
-</FILE>"$'\n'
+</FILE>"$'\n'$'\n'
 fi
 
 PLUGIN+="</PLUGIN>"
