@@ -57,8 +57,8 @@ for key in "${keys[@]}"; do
   PLUGIN+="<!ENTITY ${new_key}\"${!key}\">"$'\n'
   done
   new_key=$(printf "%-${max}s" "")
-  PLUGIN+="<!ENTITY $(printf "%-${max}s" "version")\"\""$'\n'
-  PLUGIN+="<!ENTITY $(printf "%-${max}s" "MD5")\"\""$'\n'
+  PLUGIN+="<!ENTITY $(printf "%-${max}s" "version")\"\">"$'\n'
+  PLUGIN+="<!ENTITY $(printf "%-${max}s" "MD5")\"\">"$'\n'
   PLUGIN+="]>"$'\n'
 }
 
