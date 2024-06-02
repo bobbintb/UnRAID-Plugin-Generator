@@ -108,7 +108,7 @@ changes=$(awk '/<CHANGES>/,/<\/CHANGES>/' "$OUTPUT_FILE" | sed '1d;$d')
 PLUGIN+="<CHANGES>"$'\n'
 PLUGIN+="$COMMIT_MESSAGE"$'\n'
 PLUGIN+="${changes}"$'\n'
-PLUGIN+="</CHANGES>"$'\n'
+PLUGIN+="</CHANGES>"$'\n'$'\n'
 
 #####################################
 if [[ -e "./sh/files.txt" ]]; then
