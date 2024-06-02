@@ -70,7 +70,7 @@ getver(){
           curdate=$(date +"%Y.%m.%d")
           datepattern='ENTITY version\s+"([^"]+)"'
           echo "Current date: ${curdate}"
-          previousVersion=$(grep -oP '<!ENTITY version\s*"\K[^"]*' $plg)
+          previousVersion=$(grep -oP '<!ENTITY version\s*"\K[^"]*' $OUTPUT_FILE)
           echo "Previous version: ${previousVersion}"
 
           # determine new version
