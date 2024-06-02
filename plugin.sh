@@ -114,7 +114,7 @@ PLUGIN+="</CHANGES>"$'\n'$'\n'
 #####################################
 if [[ -e "./sh/files.txt" ]]; then
   PLUGIN+="<!-- SOURCE FILES -->
-$(<./sh/files.txt)"$'\n'
+$(<./sh/files.txt)"$'\n'$'\n'
 fi
 
 if [[ -e "./sh/pre-install.sh" ]]; then
