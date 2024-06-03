@@ -119,7 +119,7 @@ fi
 
 if [[ -e "./sh/pre-install.sh" ]]; then
   PLUGIN+="<!-- PRE-INSTALL SCRIPT -->
-<FILE Run="/bin/bash" Method="install">
+<FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
 $(<./sh/pre-install.sh)
 </INLINE>
@@ -128,7 +128,7 @@ fi
 
 if [[ -e "./sh/install.sh" ]]; then
   PLUGIN+="<!-- INSTALL SCRIPT -->
-<FILE Run="/bin/bash" Method="install">
+<FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
 $(<./sh/install.sh)
 </INLINE>
@@ -137,7 +137,7 @@ fi
 
 if [[ -e "./sh/post-install.sh" ]]; then
   PLUGIN+="<!-- POST-INSTALL SCRIPT -->
-<FILE Run="/bin/bash" Method="install">
+<FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
 $(<./sh/post-install.sh)
 </INLINE>
@@ -146,7 +146,7 @@ fi
 
 if [[ -e "./sh/remove.sh" ]]; then
   PLUGIN+="<!-- REMOVE SCRIPT -->
-<FILE Run="/bin/bash" Method="remove">
+<FILE Run=\"/bin/bash\" Method=\"remove\">
 <INLINE>
 $(<./sh/remove.sh)
 </INLINE>
