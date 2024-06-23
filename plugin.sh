@@ -6,7 +6,7 @@ show_help() {
   echo "Options:"
   echo "  -a, --author    The author of the plugin."
   echo "  -c, --config    Specify config file location. (default: ./plugin.cfg)"
-  echo "  -i, --input	  The directory of the plugin's source code. (default: ./src/)"
+  echo "  -i, --input	    The directory of the plugin's source code. (default: ./src/)"
   echo "  -m, --md5       The MD5 hash of the plugin *.txz file. (required but automatically provided)"
   echo "  -n, --name      The name of the plugin. (required)"
   echo "  -r, --repo      The name of the git repo for the plugin."
