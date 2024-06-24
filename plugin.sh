@@ -91,6 +91,7 @@ getver(){
 ########################################
 package_plugin
 getver
+########################################
 
 PLUGIN="<?xml version='1.0' standalone='yes'?>"$'\n'
 PLUGIN+=""$'\n'
