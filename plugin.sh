@@ -19,21 +19,9 @@ show_help() {
 
   exit 0
 }
-config="./plugin.cfg"
-OPTIONS=$(getopt -o a:c:i:m:n:r:u:v:l:x:h --long author:,config:,input:,md5:,name:,repo:,url:,version:,min:,max:,help -- "$@")
-eval set -- "$OPTIONS"
 
-################################### Load the config file
-if [[ -f "$config" ]]; then
-  . $config
-else
-  echo "Config file not found: $config"
-  exit 1
-fi
-
-OUTPUT_FILE="${name}.plg"
-
-####################################
+#####################package_plugin#####################
+#                                                      #
 package_plugin() {
   dest="./tmp/usr/local/emhttp/plugins/${name}"
   mkdir -p "$dest"
@@ -45,15 +33,20 @@ package_plugin() {
   popd
   rm -dr ./tmp
 }
+#                                      #
+########################################
+#####################create_entity#####################
+#                                                     #
+md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 
-##########################################
 create_entity() {
 while IFS= read -r line; do
     if [[ $line == *"="* ]]; then
         keys+=("${line%%=*}")
     fi
 done < $config
-keys+=("version")
+#keys+=("version")
+keys["MD5"]="value"
 keys+=("MD5")
 max=$(( $(printf "%s\n" "${keys[@]}" | awk '{ print length }' | sort -nr | head -1) + 3 ))
 for key in "${keys[@]}"; do
@@ -63,8 +56,10 @@ for key in "${keys[@]}"; do
   new_key=$(printf "%-${max}s" "")
   PLUGIN+="]>"$'\n'
 }
-
-#######################################
+#                                      #
+########################################
+#####################getver#####################
+#                                              #
 getver(){
 # get current date and previous version
           curdate=$(date +"%Y.%m.%d")
@@ -88,8 +83,45 @@ getver(){
           echo "New version: ${curdate}"
           fi
 }
+#                                      #
 ########################################
+
+########################################################################################################################################################################
+# Check if makepkg is installed
+if ! command -v makepkg >/dev/null 2>&1; then
+    echo "makepkg is not installed"
+    exit 1
+fi
+
+# Load the config file
+config="./plugin.cfg"
+if [[ -f "$config" ]]; then
+  echo "Loading settings from config file: $config"
+  . $config
+else
+  echo "Config file not found: $config"
+  exit 1
+fi
+
+# Read command line arguments
+echo "Loading settings from command line arguments. Individual settings from the command line take precedence over the config file."
+OPTIONS=$(getopt -o a:c:i:m:n:r:u:v:l:x:h --long author:,config:,input:,md5:,name:,repo:,url:,version:,min:,max:,help -- "$@")
+eval set -- "$OPTIONS"
+
+OUTPUT_FILE="${name}.plg"
+
+
+
+
+
+
+#####################
+
+
+
 package_plugin
+md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
+
 getver
 ########################################
 
@@ -158,6 +190,5 @@ PLUGIN+="</PLUGIN>"
 ###############################################
 echo "${PLUGIN}" > "${OUTPUT_FILE}"
 
-md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 sed -i 's/\(<!ENTITY\s\+MD5\s\+"\)[^"]*\(".*\)/\1'"$md5Hash"'\2/' ${OUTPUT_FILE}
 sed -i 's/\(<!ENTITY\s\+version\s\+"\)[^"]*\(".*\)/\1'"$curdate"'\2/' ${OUTPUT_FILE}
