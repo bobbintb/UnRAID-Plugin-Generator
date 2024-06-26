@@ -23,64 +23,78 @@ show_help() {
 #####################package_plugin#####################
 #                                                      #
 package_plugin() {
-  dest="./tmp/usr/local/emhttp/plugins/${name}"
+  dest="../tmp/usr/local/emhttp/plugins/${name}"
   mkdir -p "$dest"
   echo "Copying files to temporary folder to archive..."
-  cp -r ./src/* "$dest"
-  echo "Archiving..."
-  pushd ./tmp
-  tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
+  find . -type f ! -name 'plugin.sh' -exec cp {} "$dest" \;
+  pushd ../tmp
+  #tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
+  makepkg ../"${name}".txz <<< n
   popd
-  rm -dr ./tmp
+  rm -dr ../tmp
+  MD5=$(md5sum "../${name}.txz" | awk '{print $1}')
+  echo "Package hash: $MD5}"
+
 }
 #                                      #
 ########################################
 #####################create_entity#####################
 #                                                     #
-md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
-
 create_entity() {
-while IFS= read -r line; do
+  keys=()
+  while IFS='=' read -r line; do
     if [[ $line == *"="* ]]; then
-        keys+=("${line%%=*}")
+      keys+=("${line%%=*}")
     fi
-done < $config
-#keys+=("version")
-keys["MD5"]="value"
-keys+=("MD5")
-max=$(( $(printf "%s\n" "${keys[@]}" | awk '{ print length }' | sort -nr | head -1) + 3 ))
-for key in "${keys[@]}"; do
-  new_key=$(printf "%-${max}s" "$key")
-  PLUGIN+="<!ENTITY ${new_key}\"${!key}\">"$'\n'
+  done < "$config"
+
+  keys+=("version")
+  keys+=("MD5")
+  max=$(( $(printf "%s\n" "${keys[@]}" | awk '{ print length }' | sort -nr | head -1) + 3 ))
+  for key in "${keys[@]}"; do
+    case "$key" in
+      "version")
+        value="$version"
+        ;;
+      "MD5")
+        value="$MD5"
+        ;;
+      *)
+        value="${!key}"
+        ;;
+    esac
+
+    new_key=$(printf "%-${max}s" "$key")
+    PLUGIN+="<!ENTITY ${new_key}\"$value\">"$'\n'
   done
-  new_key=$(printf "%-${max}s" "")
   PLUGIN+="]>"$'\n'
 }
+
 #                                      #
 ########################################
 #####################getver#####################
 #                                              #
 getver(){
 # get current date and previous version
-          curdate=$(date +"%Y.%m.%d")
+          version=$(date +"%Y.%m.%d")
           datepattern='ENTITY version\s+"([^"]+)"'
-          echo "Current date: ${curdate}"
+          echo "Current date: ${version}"
           previousVersion=$(grep -oP '<!ENTITY version\s*"\K[^"]*' $OUTPUT_FILE)
           echo "Previous version: ${previousVersion}"
 
           # determine new version
-          if [[ $curdate == $previousVersion ]]; then
-          curdate+="a"
-          echo "New version: ${curdate}"
+          if [[ $version == $previousVersion ]]; then
+          version+="a"
+          echo "New version: ${version}"
           fi
-          if [[ $curdate == ${previousVersion%?} && "$previousVersion" =~ [[:alpha:]]$ ]]; then
+          if [[ $version == ${previousVersion%?} && "$previousVersion" =~ [[:alpha:]]$ ]]; then
           extracted_letter=${previousVersion: -1}
           echo "Previous sub-version: ${extracted_letter}"
           ascii_code=$(printf "%d" "'$extracted_letter")
           next_ascii_code=$((ascii_code + 1))
           next_letter=$(printf \\$(printf '%03o' "$next_ascii_code"))
-          curdate+="$next_letter"
-          echo "New version: ${curdate}"
+          version+="$next_letter"
+          #echo "New version: ${version}"
           fi
 }
 #                                      #
@@ -102,12 +116,6 @@ else
   echo "Config file not found: $config"
   exit 1
 fi
-
-# Read command line arguments
-echo "Loading settings from command line arguments. Individual settings from the command line take precedence over the config file."
-OPTIONS=$(getopt -o a:c:i:m:n:r:u:v:l:x:h --long author:,config:,input:,md5:,name:,repo:,url:,version:,min:,max:,help -- "$@")
-eval set -- "$OPTIONS"
-
 OUTPUT_FILE="${name}.plg"
 
 
@@ -120,7 +128,6 @@ OUTPUT_FILE="${name}.plg"
 
 
 package_plugin
-md5Hash=$(md5sum "${name}.txz" | awk '{print $1}')
 
 getver
 ########################################
@@ -139,9 +146,7 @@ PLUGIN+=">"$'\n'$'\n'
 
 changes=$(awk '/<CHANGES>/,/<\/CHANGES>/' "$OUTPUT_FILE" | sed '1d;$d')
 PLUGIN+="<CHANGES>"$'\n'
-PLUGIN+="$curdate"$'\n'
-PLUGIN+="$COMMIT_MESSAGE"$'\n'$'\n'
-PLUGIN+="${changes}"$'\n'
+PLUGIN+=$(<CHANGELOG.md)$'\n'
 PLUGIN+="</CHANGES>"$'\n'$'\n'
 
 #####################################
@@ -158,6 +163,12 @@ $(<./sh/pre-install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
+
+PLUGIN+="<!-- SOURCE PACKAGE -->
+<FILE Name=\"&source;.txz\" Run=\"upgradepkg --install-new --reinstall\">
+<URL>https://raw.githubusercontent.com/&author;/&repo;/release/artifacts/&name;.txz</URL>
+<MD5>&MD5;</MD5>
+</FILE>"$'\n'$'\n'
 
 if [[ -e "./sh/install.sh" ]]; then
   PLUGIN+="<!-- INSTALL SCRIPT -->
@@ -189,6 +200,3 @@ fi
 PLUGIN+="</PLUGIN>"
 ###############################################
 echo "${PLUGIN}" > "${OUTPUT_FILE}"
-
-sed -i 's/\(<!ENTITY\s\+MD5\s\+"\)[^"]*\(".*\)/\1'"$md5Hash"'\2/' ${OUTPUT_FILE}
-sed -i 's/\(<!ENTITY\s\+version\s\+"\)[^"]*\(".*\)/\1'"$curdate"'\2/' ${OUTPUT_FILE}
