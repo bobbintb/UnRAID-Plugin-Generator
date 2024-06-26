@@ -1,4 +1,4 @@
-#!/bin/bash
+-#!/bin/bash
 
 show_help() {
   echo "Usage: $0 [options]"
@@ -26,7 +26,7 @@ package_plugin() {
   dest="../tmp/usr/local/emhttp/plugins/${name}"
   mkdir -p "$dest"
   echo "Copying files to temporary folder to archive..."
-  find . -type f ! -name 'plugin.sh' -exec cp {} "$dest" \;
+  rsync -av --exclude=".*" --exclude='plugin.sh' --exclude='sh/' ./ "$dest"
   pushd ../tmp
   #tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
   makepkg ../"${name}".txz <<< n
@@ -118,17 +118,8 @@ else
 fi
 OUTPUT_FILE="${name}.plg"
 
-
-
-
-
-
 #####################
-
-
-
 package_plugin
-
 getver
 ########################################
 
@@ -150,16 +141,16 @@ PLUGIN+=$(<CHANGELOG.md)$'\n'
 PLUGIN+="</CHANGES>"$'\n'$'\n'
 
 #####################################
-if [[ -e "./sh/files.txt" ]]; then
+if [[ -e "./.plugin/files.txt" ]]; then
   PLUGIN+="<!-- SOURCE FILES -->
-$(<./sh/files.txt)"$'\n'$'\n'
+$(<./.plugin/files.txt)"$'\n'$'\n'
 fi
 
-if [[ -e "./sh/pre-install.sh" ]]; then
+if [[ -e "./.plugin/pre-install.sh" ]]; then
   PLUGIN+="<!-- PRE-INSTALL SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
-$(<./sh/pre-install.sh)
+$(<./.plugin/pre-install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
@@ -170,29 +161,29 @@ PLUGIN+="<!-- SOURCE PACKAGE -->
 <MD5>&MD5;</MD5>
 </FILE>"$'\n'$'\n'
 
-if [[ -e "./sh/install.sh" ]]; then
+if [[ -e "./.plugin/install.sh" ]]; then
   PLUGIN+="<!-- INSTALL SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
-$(<./sh/install.sh)
+$(<./.plugin/install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
 
-if [[ -e "./sh/post-install.sh" ]]; then
+if [[ -e "./.plugin/post-install.sh" ]]; then
   PLUGIN+="<!-- POST-INSTALL SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
-$(<./sh/post-install.sh)
+$(<./.plugin/post-install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
 
-if [[ -e "./sh/remove.sh" ]]; then
+if [[ -e "./.plugin/remove.sh" ]]; then
   PLUGIN+="<!-- REMOVE SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"remove\">
 <INLINE>
-$(<./sh/remove.sh)
+$(<./.plugin/remove.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
