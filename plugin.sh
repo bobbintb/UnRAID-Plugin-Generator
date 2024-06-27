@@ -158,7 +158,7 @@ fi
 
 PLUGIN+="<!-- SOURCE PACKAGE -->
 <FILE Name=\"&source;.txz\" Run=\"upgradepkg --install-new --reinstall\">
-<URL>https://raw.githubusercontent.com/&author;/&repo;/release/artifacts/&name;.txz</URL>
+<URL>&packageURL;</URL>
 <MD5>&MD5;</MD5>
 </FILE>"$'\n'$'\n'
 
