@@ -32,7 +32,7 @@ package_plugin() {
   makepkg ../${repo}/"${name}".txz <<< n
   popd
   rm -dr ../tmp
-  MD5=$(md5sum "../${name}.txz" | awk '{print $1}')
+  MD5=$(md5sum "${name}.txz" | awk '{print $1}')
   echo "Package hash: $MD5"
 
 }
