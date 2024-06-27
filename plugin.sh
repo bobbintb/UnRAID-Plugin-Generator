@@ -29,7 +29,7 @@ package_plugin() {
   rsync -av --exclude=".*" --exclude='plugin.sh' --exclude='sh/' ./ "$dest"
   pushd ../tmp
   #tar -cJf ../"${name}".txz --owner=0 --group=0 usr/*
-  makepkg ../"${name}".txz <<< n
+  makepkg ../${repo}/"${name}".txz <<< n
   popd
   rm -dr ../tmp
   MD5=$(md5sum "../${name}.txz" | awk '{print $1}')
