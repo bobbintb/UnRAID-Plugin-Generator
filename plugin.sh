@@ -1,4 +1,4 @@
--#!/bin/bash
+#!/bin/bash
 
 show_help() {
   echo "Usage: $0 [options]"
