@@ -33,7 +33,7 @@ package_plugin() {
   popd
   rm -dr ../tmp
   MD5=$(md5sum "../${name}.txz" | awk '{print $1}')
-  echo "Package hash: $MD5}"
+  echo "Package hash: $MD5"
 
 }
 #                                      #
