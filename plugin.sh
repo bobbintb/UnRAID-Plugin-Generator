@@ -84,18 +84,18 @@ getver(){
 
           # determine new version
           if [[ $version == $previousVersion ]]; then
-          version+="a"
-          echo "New version: ${version}"
+            version+="a"
+            echo "New version: ${version}"
           fi
           if [[ $version == ${previousVersion%?} && "$previousVersion" =~ [[:alpha:]]$ ]]; then
-          extracted_letter=${previousVersion: -1}
-          echo "Previous sub-version: ${extracted_letter}"
-          ascii_code=$(printf "%d" "'$extracted_letter")
-          next_ascii_code=$((ascii_code + 1))
-          next_letter=$(printf \\$(printf '%03o' "$next_ascii_code"))
-          version+="$next_letter"
+            extracted_letter=${previousVersion: -1}
+            echo "Previous sub-version: ${extracted_letter}"
+            ascii_code=$(printf "%d" "'$extracted_letter")
+            next_ascii_code=$((ascii_code + 1))
+            next_letter=$(printf \\$(printf '%03o' "$next_ascii_code"))
+            version+="$next_letter"
           fi
-            echo "TAG=$version" >> $GITHUB_ENV
+          echo "TAG=$version" >> $GITHUB_ENV
 }
 #                                      #
 ########################################
