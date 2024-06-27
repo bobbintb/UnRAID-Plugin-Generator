@@ -79,7 +79,7 @@ getver(){
   version=$(date +"%Y.%m.%d")
   datepattern='ENTITY version\s+"([^"]+)"'
   echo "Current date: ${version}"
-  url=$(echo "$pluginURL" | sed 's/;\|&//g')
+  url=$(echo "$pluginURL" | sed 's/&/\$/g; s/;//g')
   eval "url=\"$url\""
   echo "Downloading previous version: ${url}"
   wget $url
