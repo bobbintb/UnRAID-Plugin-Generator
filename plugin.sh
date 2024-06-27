@@ -136,9 +136,10 @@ for key in "${keys[@]}"; do
 done
 PLUGIN+=">"$'\n'$'\n'
 
-changes=$(awk '/<CHANGES>/,/<\/CHANGES>/' "$OUTPUT_FILE" | sed '1d;$d')
 PLUGIN+="<CHANGES>"$'\n'
-PLUGIN+=$(<CHANGELOG.md)$'\n'
+if [[ -e "CHANGELOG.md" ]]; then
+  PLUGIN+=$(<CHANGELOG.md)$'\n'
+fi
 PLUGIN+="</CHANGES>"$'\n'$'\n'
 
 #####################################
