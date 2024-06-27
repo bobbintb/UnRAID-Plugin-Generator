@@ -94,7 +94,8 @@ getver(){
           next_ascii_code=$((ascii_code + 1))
           next_letter=$(printf \\$(printf '%03o' "$next_ascii_code"))
           version+="$next_letter"
-          echo "TAG=$($version)" >> $GITHUB_ENV
+          echo "TAG=$(echo $version)" >> $GITHUB_ENV
+          echo "fghbdgf"
           #echo "New version: ${version}"
           fi
 }
