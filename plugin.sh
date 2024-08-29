@@ -146,16 +146,16 @@ fi
 PLUGIN+="</CHANGES>"$'\n'$'\n'
 
 #####################################
-if [[ -e "./.plugin/files.txt" ]]; then
+if [[ -e "./.plugin/01-files.txt" ]]; then
   PLUGIN+="<!-- SOURCE FILES -->
-$(<./.plugin/files.txt)"$'\n'$'\n'
+$(<./.plugin/01-files.txt)"$'\n'$'\n'
 fi
 
-if [[ -e "./.plugin/pre-install.sh" ]]; then
+if [[ -e "./.plugin/02-pre-install.sh" ]]; then
   PLUGIN+="<!-- PRE-INSTALL SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
-$(<./.plugin/pre-install.sh)
+$(<./.plugin/02-pre-install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
@@ -175,20 +175,20 @@ $(<./.plugin/install.sh)
 </FILE>"$'\n'$'\n'
 fi
 
-if [[ -e "./.plugin/post-install.sh" ]]; then
+if [[ -e "./.plugin/03-post-install.sh" ]]; then
   PLUGIN+="<!-- POST-INSTALL SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
-$(<./.plugin/post-install.sh)
+$(<./.plugin/03-post-install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
 
-if [[ -e "./.plugin/remove.sh" ]]; then
+if [[ -e "./.plugin/04-remove.sh" ]]; then
   PLUGIN+="<!-- REMOVE SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"remove\">
 <INLINE>
-$(<./.plugin/remove.sh)
+$(<./.plugin/04-remove.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
