@@ -133,6 +133,12 @@ PLUGIN+="<!DOCTYPE PLUGIN ["$'\n'
 
 create_entity
 
+sed_string+='/'
+for key in "${keys[@]}"; do
+  sed_string+="&${key};|"
+done
+sed_string="${sed_string%?}/!s/&/&amp;/g"
+
 PLUGIN+="<PLUGIN"
 for key in "${keys[@]}"; do
   PLUGIN+=" ${key}=\"&${key};\""
@@ -155,7 +161,7 @@ if [[ -e "./.plugin/02-pre-install.sh" ]]; then
   PLUGIN+="<!-- PRE-INSTALL SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
-$(<./.plugin/02-pre-install.sh)
+$(sed -E "$sed_string" ./.plugin/02-pre-install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
@@ -170,7 +176,7 @@ if [[ -e "./.plugin/install.sh" ]]; then
   PLUGIN+="<!-- INSTALL SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
-$(<./.plugin/install.sh)
+$(sed -E "$sed_string" ./.plugin/install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
@@ -179,7 +185,7 @@ if [[ -e "./.plugin/03-post-install.sh" ]]; then
   PLUGIN+="<!-- POST-INSTALL SCRIPT -->
 <FILE Run=\"/bin/bash\" Method=\"install\">
 <INLINE>
-$(<./.plugin/03-post-install.sh)
+$(sed -E "$sed_string" ./.plugin/03-post-install.sh)
 </INLINE>
 </FILE>"$'\n'$'\n'
 fi
