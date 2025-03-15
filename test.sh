@@ -17,8 +17,17 @@
 
 content=$(awk -v RS= 'match($0, /<CHANGES>([^<]*)<\/CHANGES>/, arr) {print arr[1]}' output.xml)
 content=$(<"$content")
+
+# inserts changelog
 gawk -v content="$content" -i inplace '{gsub(/<CHANGES>.*<\/CHANGES>/, "<CHANGES>\n" content "\n</CHANGES>")} 1' output.xml
 
+# Adds two \n before comments
+sed -i ':a;N;$!ba;s/\([^\n]\)\(<!--\)/\1\n\n\2/g; s/\([^\n]\n\)\(<!--\)/\n\n\2/g' output.xml
+
+# Replaces &amp; with &
+sed -i 's/&amp;/\&/g' output.xml
+
+# inserts inline shell scripts
 while IFS= read -r line
 do
     if [[ $line =~ \<INLINE\>(.*)\</INLINE\> ]]; then
@@ -33,4 +42,4 @@ do
     else
         echo "$line"
     fi
-done < output.xml
+done < output.xml > output.plg
