@@ -39,6 +39,7 @@ def package_plugin():
 
     md5sum = md5_hash.hexdigest()
     print(f"Package hash: {md5sum}")
+    return md5sum
 
 def convert_bash_to_python(version, previous_version):
     if version == previous_version[:-1] and re.search(r'[a-zA-Z]$', previous_version):
@@ -101,6 +102,7 @@ def replace_ampersand(text, exceptions):
 
 def main():
     data['ENTITIES']['version'] = getver()
+    data['ENTITIES']['MD5'] = package_plugin()
     with open("CHANGELOG.md", "r") as file:
         changelog = file.read()
     xml_string = "<?xml version='1.0' standalone='yes'?>\n\n<!DOCTYPE PLUGIN [\n"
@@ -140,8 +142,7 @@ parser.add_argument("arg")
 args = parser.parse_args()
 
 data = read_yaml(args.arg)
-package_plugin()
-# xml_output = main()
+xml_output = main()
 
-# with open("test.xml", "w") as f:
-#     f.write(xml_output)
+with open(f"{data['ENTITIES']['name']}.plg", "w") as f:
+    f.write(xml_output)
