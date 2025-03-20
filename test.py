@@ -1,3 +1,4 @@
+import argparse
 import hashlib
 import os
 import re
@@ -134,8 +135,11 @@ def main():
     xml_string += f'</PLUGIN>'
     return xml_string
 
+parser = argparse.ArgumentParser()
+parser.add_argument("arg")
+args = parser.parse_args()
 
-data = read_yaml('bobbintb.system.dirt.yaml')
+data = read_yaml(args.arg)
 package_plugin()
 # xml_output = main()
 
