@@ -11,6 +11,7 @@ import ruamel.yaml
 import xmltodict
 
 def package_plugin():
+    currentdir = os.getcwd()
     dest = f"../tmp/usr/local/emhttp/plugins/{data['ENTITIES']['name']}"
     os.makedirs(dest, exist_ok=True)
     print("Copying files to temporary folder to archive...")
@@ -39,6 +40,7 @@ def package_plugin():
 
     md5sum = md5_hash.hexdigest()
     print(f"Package hash: {md5sum}")
+    os.chdir(currentdir)
     return md5sum
 
 def convert_bash_to_python(version, previous_version):
