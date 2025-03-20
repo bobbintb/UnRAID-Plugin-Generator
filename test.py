@@ -103,6 +103,8 @@ def replace_ampersand(text, exceptions):
 def main():
     data['ENTITIES']['version'] = getver()
     data['ENTITIES']['MD5'] = package_plugin()
+    print(os.getcwd())
+    print(os.listdir())
     with open(data['CHANGES'], "r") as file:
         changelog = file.read()
     xml_string = "<?xml version='1.0' standalone='yes'?>\n\n<!DOCTYPE PLUGIN [\n"
