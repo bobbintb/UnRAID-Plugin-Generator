@@ -31,7 +31,7 @@ def package_plugin():
     os.chdir("..")
     shutil.rmtree("tmp", ignore_errors=True)
 
-    txz_path = f"{./{data['ENTITIES']['repo']}/data['ENTITIES']['name']}.txz"
+    txz_path = f"./{data['ENTITIES']['repo']}/{data['ENTITIES']['name']}.txz"
     md5_hash = hashlib.md5()
     with open(txz_path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
