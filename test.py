@@ -14,11 +14,7 @@ import xmltodict
 
 def package_plugin():
     dest = f"../tmp/usr/local/emhttp/plugins/{data['ENTITIES']['name']}"
-    installdir = '../tmp/install/'
     os.makedirs(dest, exist_ok=True)
-    os.makedirs(installdir, exist_ok=True)
-    if os.path.exists("doinst.sh"):
-        shutil.move(f"${installdir}doinst.sh", dest)
     print("Copying files to temporary folder to archive...")
     exclusions = {".*", "plugin.sh", "sh/"}
     for root, dirs, files in os.walk("."):
@@ -31,6 +27,12 @@ def package_plugin():
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)
                 shutil.copy2(src_path, dest_path)
     os.chdir("../tmp")
+    installdir = '../tmp/install/'
+    os.makedirs(installdir, exist_ok=True)
+    if os.path.exists("doinst.sh"):
+        shutil.move(f"${installdir}doinst.sh", dest)
+    if os.path.exists("slack-desc"):
+        shutil.move(f"${installdir}slack-desc", dest)
     makepkg_cmd = f"makepkg ../{data['ENTITIES']['repo']}/{data['ENTITIES']['name']}.txz"
     subprocess.run(makepkg_cmd, input=b"n\n", shell=True, check=True)
 
