@@ -30,9 +30,9 @@ def package_plugin():
     installdir = '../tmp/install/'
     os.makedirs(installdir, exist_ok=True)
     if os.path.exists("doinst.sh"):
-        shutil.move(f"${installdir}doinst.sh", dest)
+        shutil.move(f"${dest}/doinst.sh", installdir)
     if os.path.exists("slack-desc"):
-        shutil.move(f"${installdir}slack-desc", dest)
+        shutil.move(f"${dest}/slack-desc", installdir)
     makepkg_cmd = f"makepkg ../{data['ENTITIES']['repo']}/{data['ENTITIES']['name']}.txz"
     subprocess.run(makepkg_cmd, input=b"n\n", shell=True, check=True)
 
