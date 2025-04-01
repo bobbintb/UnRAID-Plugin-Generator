@@ -13,9 +13,12 @@ import ruamel.yaml
 import xmltodict
 
 def package_plugin():
-    currentdir = os.getcwd()
     dest = f"../tmp/usr/local/emhttp/plugins/{data['ENTITIES']['name']}"
+    installdir = '../tmp/install/'
     os.makedirs(dest, exist_ok=True)
+    os.makedirs(installdir, exist_ok=True)
+    if os.path.exists("doinst.sh"):
+        shutil.move(f"${installdir}doinst.sh", dest)
     print("Copying files to temporary folder to archive...")
     exclusions = {".*", "plugin.sh", "sh/"}
     for root, dirs, files in os.walk("."):
@@ -42,7 +45,6 @@ def package_plugin():
 
     md5sum = md5_hash.hexdigest()
     print(f"Package hash: {md5sum}")
-    os.chdir(currentdir)
     return md5sum
 
 def convert_bash_to_python(version, previous_version):
@@ -107,8 +109,6 @@ def replace_ampersand(text, exceptions):
 def main():
     data['ENTITIES']['version'] = getver()
     data['ENTITIES']['MD5'] = package_plugin()
-    print(os.getcwd())
-    print(os.listdir())
     with open(data['CHANGES'], "r") as file:
         changelog = file.read()
     xml_string = "<?xml version='1.0' standalone='yes'?>\n\n<!DOCTYPE PLUGIN [\n"
