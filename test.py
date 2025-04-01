@@ -111,8 +111,12 @@ def replace_ampersand(text, exceptions):
 def main():
     data['ENTITIES']['version'] = getver()
     data['ENTITIES']['MD5'] = package_plugin()
-    with open(data['CHANGES'], "r") as file:
-        changelog = file.read()
+    try:
+        with open(data['CHANGES'], "r") as file:
+            changelog = file.read()
+    except Exception as e:
+        print(f"Error: {e}")
+        print(f"Current working directory: {os.getcwd()}")
     xml_string = "<?xml version='1.0' standalone='yes'?>\n\n<!DOCTYPE PLUGIN [\n"
 
     entitiyLength = len(max(data['ENTITIES'], key=len))
