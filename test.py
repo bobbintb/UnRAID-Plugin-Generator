@@ -28,7 +28,7 @@ def package_plugin():
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)
                 shutil.copy2(src_path, dest_path)
     os.chdir("../tmp")
-    installdir = '../tmp/install/'
+    installdir = './install/'
     os.makedirs(installdir, exist_ok=True)
     if os.path.exists("doinst.sh"):
         shutil.move(f"${dest}/doinst.sh", installdir)
