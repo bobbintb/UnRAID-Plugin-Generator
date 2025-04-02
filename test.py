@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import argparse
+import fnmatch
 import hashlib
 import os
 import re
@@ -19,7 +20,8 @@ def package_plugin():
     print("Copying files to temporary folder to archive...")
     exclusions = {".*", "plugin.sh", "sh/"}
     for root, dirs, files in os.walk(".", topdown=True):
-        dirs[:] = [d for d in dirs if d not in exclusions]
+        dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, excl) for excl in exclusions)]
+        # dirs[:] = [d for d in dirs if d not in exclusions]
         for file in files:
             if file not in exclusions:
                 src_path = os.path.join(root, file)
