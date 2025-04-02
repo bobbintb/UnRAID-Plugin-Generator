@@ -27,6 +27,7 @@ def package_plugin():
                 dest_path = os.path.join(dest, rel_path)
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)
                 shutil.copy2(src_path, dest_path)
+                print(f"Copying {src_path}")
     os.chdir("../tmp")
     installdir = './install/'
     os.makedirs(installdir, exist_ok=True)
