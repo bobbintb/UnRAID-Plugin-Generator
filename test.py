@@ -7,18 +7,29 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 
-import requests
-import ruamel.yaml
-import xmltodict
+# import requests
+# import ruamel.yaml
+# import xmltodict
+
+required_packages = ['requests', 'ruamel.yaml', 'xmltodict']
+
+for package in required_packages:
+    try:
+        __import__(package)
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        globals()[package] = __import__(package)
+
 
 def package_plugin():
     cwd = os.getcwd()
     dest = f"../tmp/usr/local/emhttp/plugins/{data['ENTITIES']['name']}"
     os.makedirs(dest, exist_ok=True)
     print("Copying files to temporary folder to archive...")
-    exclusions = {".*", "plugin.sh", "sh/"}
+    exclusions = {".*", "plugin.sh"}
     for root, dirs, files in os.walk(".", topdown=True):
         dirs[:] = [d for d in dirs if not any(fnmatch.fnmatch(d, excl) for excl in exclusions)]
         # dirs[:] = [d for d in dirs if d not in exclusions]
