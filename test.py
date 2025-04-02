@@ -10,9 +10,9 @@ import subprocess
 import sys
 from datetime import datetime
 
-# import requests
-# import ruamel.yaml
-# import xmltodict
+import requests
+import ruamel.yaml
+import xmltodict
 
 required_packages = ['requests', 'ruamel.yaml', 'xmltodict']
 
