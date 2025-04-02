@@ -7,32 +7,11 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 from datetime import datetime
-import importlib.metadata
 
 import requests
 import ruamel.yaml
 import xmltodict
-
-# required_packages = ['requests', 'ruamel.yaml', 'xmltodict']
-
-
-
-required = {'requests', 'ruamel.yaml', 'xmltodict'}
-installed = {pkg.metadata['Name'].lower() for pkg in importlib.metadata.distributions()}
-missing = required - installed
-
-if missing:
-    python = sys.executable
-    try:
-        subprocess.check_call([python, '-m', 'pip', 'install', *missing], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print(f"Successfully installed: {', '.join(missing)}")
-    except subprocess.CalledProcessError as e:
-        print(f"Error installing packages: {e}")
-        sys.exit(1)
-else:
-    print("All required packages are already installed.")
 
 def package_plugin():
     cwd = os.getcwd()
