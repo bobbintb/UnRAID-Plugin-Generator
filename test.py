@@ -18,7 +18,7 @@ def package_plugin():
     os.makedirs(dest, exist_ok=True)
     print("Copying files to temporary folder to archive...")
     exclusions = {".*", "plugin.sh", "sh/"}
-    for root, dirs, files in os.walk("."):
+    for root, dirs, files in os.walk(".", topdown=True):
         dirs[:] = [d for d in dirs if d not in exclusions]
         for file in files:
             if file not in exclusions:
