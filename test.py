@@ -147,9 +147,9 @@ def main():
                     inline_content = replace_ampersand(inline_content, [f'&{item};' for item in data['ENTITIES']])
                 if '@Name' in file:
                     inline_content = f'<![CDATA[\n{inline_content}\n]]>'
-                file_string += f'<INLINE>\n{inline_content}\n</INLINE>\n\n'
+                file_string += f'<INLINE>\n{inline_content}\n</INLINE>\n</FILE>\n\n'
             else:
-                file_string += f'<{item}>{file[item]}</{item}></FILE>\n\n'
+                file_string += f'<{item}>{file[item]}</{item}>\n\n'
         file_entity += f'>\n{file_string}'
         xml_string += file_entity
     xml_string += f'</PLUGIN>'
