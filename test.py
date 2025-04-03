@@ -74,14 +74,11 @@ def convert_bash_to_python(version, previous_version):
 
 def getver():
     plugin_url = data['ENTITIES']['pluginURL']
-
     def replace_entities(match):
         entity = match.group(1)
         return data['ENTITIES'].get(entity, f'&{entity};')
     resolved_url = re.sub(r'&(\w+);', replace_entities, plugin_url)
-
     response = requests.get(resolved_url, headers={"Accept": "application/xml"})
-
     if response.status_code == 200:
         xml_content = response.text
 
@@ -89,18 +86,13 @@ def getver():
         # Now xml_content contains the XML file in memory as a string
     else:
         print(f"Failed to download XML. Status code: {response.status_code}")
-    print(xml_content)
     previous_version = xmltodict.parse(xml_content)['PLUGIN']['@version']
-    print(previous_version)
+    print(f"Previous Version: {previous_version}")
 
     version = datetime.today().strftime("%Y.%m.%d")
-    print('test')
-
-
     if version == previous_version:
         version += "a"
         print(f"New version: {version}")
-
     new_version = convert_bash_to_python(version, previous_version)
     return (new_version)
 
@@ -116,7 +108,7 @@ def replace_ampersand(text, exceptions):
 
 def main():
     data['ENTITIES']['version'] = getver()
-    data['ENTITIES']['MD5'] = package_plugin()
+    # data['ENTITIES']['MD5'] = package_plugin()
     try:
         with open(data['CHANGES'], "r") as file:
             changelog = file.read()
@@ -136,7 +128,9 @@ def main():
     xml_string += f'>\n\n<CHANGES>\n{changelog}\n</CHANGES>\n\n'
 
     for file in data['FILE']:
-        file_entity = '<FILE'
+        file_entity_prefix = '<FILE'
+        file_entity_suffix = '</FILE>'
+        file_entity = file_entity_prefix
         file_string = ''
         for item in file:
             if item.startswith('@'):
@@ -147,10 +141,10 @@ def main():
                     inline_content = replace_ampersand(inline_content, [f'&{item};' for item in data['ENTITIES']])
                 if '@Name' in file:
                     inline_content = f'<![CDATA[\n{inline_content}\n]]>'
-                file_string += f'<INLINE>\n{inline_content}\n</INLINE>\n</FILE>\n\n'
+                file_string += f'<INLINE>\n{inline_content}\n</INLINE>\n\n'
             else:
                 file_string += f'<{item}>{file[item]}</{item}>\n\n'
-        file_entity += f'>\n{file_string}'
+        file_entity += f'>{file_string}\n{file_entity_suffix}\n'
         xml_string += file_entity
     xml_string += f'</PLUGIN>'
     return xml_string
