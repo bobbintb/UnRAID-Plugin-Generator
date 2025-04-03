@@ -126,7 +126,7 @@ def main():
 
     entitiyLength = len(max(data['ENTITIES'], key=len))
     for entity in data['ENTITIES']:
-        xml_string += f'<!ENITITY {entity}  {" " * (entitiyLength - len(entity))}"{data['ENTITIES'][entity]}">\n'
+        xml_string += f'<!ENTITY {entity}  {" " * (entitiyLength - len(entity))}"{data['ENTITIES'][entity]}">\n'
 
     xml_string += ']>\n\n<PLUGIN'
 
