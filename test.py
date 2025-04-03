@@ -39,16 +39,13 @@ def package_plugin():
         shutil.move(f"${dest}/slack-desc", installdir)
     makepkg_cmd = f"makepkg ../{data['ENTITIES']['repo']}/{data['ENTITIES']['name']}.txz"
     subprocess.run(makepkg_cmd, input=b"n\n", shell=True, check=True)
-
     os.chdir("..")
     shutil.rmtree("tmp", ignore_errors=True)
-
     txz_path = f"./{data['ENTITIES']['repo']}/{data['ENTITIES']['name']}.txz"
     md5_hash = hashlib.md5()
     with open(txz_path, "rb") as f:
         for chunk in iter(lambda: f.read(4096), b""):
             md5_hash.update(chunk)
-
     md5sum = md5_hash.hexdigest()
     print(f"Package hash: {md5sum}")
     os.chdir(cwd)
@@ -58,18 +55,13 @@ def convert_bash_to_python(version, previous_version):
     if version == previous_version[:-1] and re.search(r'[a-zA-Z]$', previous_version):
         extracted_letter = previous_version[-1]
         print(f"Previous sub-version: {extracted_letter}")
-
         ascii_code = ord(extracted_letter)
         next_ascii_code = ascii_code + 1
-
-        # Ensure we wrap around from 'z' to 'a' or 'Z' to 'A'
         if extracted_letter.islower():
             next_letter = chr((next_ascii_code - ord('a')) % 26 + ord('a'))
         else:
             next_letter = chr((next_ascii_code - ord('A')) % 26 + ord('A'))
-
         version += next_letter
-
     return version
 
 def getver():
@@ -81,14 +73,10 @@ def getver():
     response = requests.get(resolved_url, headers={"Accept": "application/xml"})
     if response.status_code == 200:
         xml_content = response.text
-
-        # print(xml_content)
-        # Now xml_content contains the XML file in memory as a string
     else:
         print(f"Failed to download XML. Status code: {response.status_code}")
     previous_version = xmltodict.parse(xml_content)['PLUGIN']['@version']
     print(f"Previous Version: {previous_version}")
-
     version = datetime.today().strftime("%Y.%m.%d")
     if version == previous_version:
         version += "a"
@@ -108,7 +96,7 @@ def replace_ampersand(text, exceptions):
 
 def main():
     data['ENTITIES']['version'] = getver()
-    # data['ENTITIES']['MD5'] = package_plugin()
+    data['ENTITIES']['MD5'] = package_plugin()
     try:
         with open(data['CHANGES'], "r") as file:
             changelog = file.read()
@@ -116,17 +104,13 @@ def main():
         print(f"Error: {e}")
         print(f"Current working directory: {os.getcwd()}")
     xml_string = "<?xml version='1.0' standalone='yes'?>\n\n<!DOCTYPE PLUGIN [\n"
-
     entitiyLength = len(max(data['ENTITIES'], key=len))
     for entity in data['ENTITIES']:
         xml_string += f'<!ENTITY {entity}  {" " * (entitiyLength - len(entity))}"{data['ENTITIES'][entity]}">\n'
-
     xml_string += ']>\n\n<PLUGIN'
-
     for entity in data['ENTITIES']:
         xml_string += f' {entity}="&{entity};"'
     xml_string += f'>\n\n<CHANGES>\n{changelog}\n</CHANGES>\n\n'
-
     for file in data['FILE']:
         file_entity_prefix = '<FILE'
         file_entity_suffix = '</FILE>'
@@ -152,7 +136,6 @@ def main():
 parser = argparse.ArgumentParser()
 parser.add_argument("arg")
 args = parser.parse_args()
-
 data = read_yaml(args.arg)
 xml_output = main()
 
