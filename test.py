@@ -80,15 +80,16 @@ def getver():
         return data['ENTITIES'].get(entity, f'&{entity};')
     resolved_url = re.sub(r'&(\w+);', replace_entities, plugin_url)
 
-    response = requests.get(resolved_url)
+    response = requests.get(resolved_url, headers={"Accept": "application/xml"})
 
     if response.status_code == 200:
         xml_content = response.text
+
         # print(xml_content)
         # Now xml_content contains the XML file in memory as a string
     else:
         print(f"Failed to download XML. Status code: {response.status_code}")
-
+    print(xml_content)
     previous_version = xmltodict.parse(xml_content)['PLUGIN']['@version']
     print(previous_version)
 
@@ -146,7 +147,7 @@ def main():
                     inline_content = replace_ampersand(inline_content, [f'&{item};' for item in data['ENTITIES']])
                 if '@Name' in file:
                     inline_content = f'<![CDATA[\n{inline_content}\n]]>'
-                file_string += f'<INLINE>\n{inline_content}\n</INLINE>\n</FILE>\n\n'
+                file_string += f'<INLINE>\n{inline_content}\n</INLINE>\n\n'
             else:
                 file_string += f'<{item}>{file[item]}</{item}></FILE>\n\n'
         file_entity += f'>\n{file_string}'
