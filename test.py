@@ -122,6 +122,7 @@ def main():
             elif item == 'INLINE':
                 with open(file['INLINE'], 'r') as f:
                     inline_content = f.read()
+                    inline_content = inline_content.replace('<', '&lt;')
                     inline_content = replace_ampersand(inline_content, [f'&{item};' for item in data['ENTITIES']])
                 if '@Name' in file:
                     inline_content = f'<![CDATA[\n{inline_content}\n]]>'
