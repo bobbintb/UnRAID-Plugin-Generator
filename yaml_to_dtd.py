@@ -117,67 +117,80 @@ def main():
                 print(comment_str)
 
             attributes = []
-            has_at_keys = False # To track if any @-attributes were found
-            attributes = [] # Reset for each file_item
-            child_tag_strings = [] # To store <URL>, <MD5>, <INLINE> etc.
+            # Skip if file_item is empty (e.g. a list item that's just a comment placeholder)
+            if not file_item and not (item_idx in file_list.ca.items and file_list.ca.items[item_idx][1]): # ensure it's not just a comment
+                 # If file_item is empty AND it doesn't have an associated comment, then skip.
+                 # If it has a comment, it will be printed, and then we'd print an empty <FILE /> if we don't continue.
+                 # The goal is to not print <FILE /> for truly empty items.
+                 # A file_item that is just a comment in YAML (e.g. '- # Just a comment line') results in an empty file_item (None).
+                 # In ruamel.yaml, an empty item in a sequence that only had a comment might result in file_item being None.
+                 # The check `if not isinstance(file_item, dict)` handles `None` items.
+                 # If file_item is an empty dict `{}`, it will not be skipped by `isinstance`.
+                 if not file_item: # file_item is an empty dict {}
+                    if not comment_str: # And no comment was printed for it
+                        continue # Skip printing <FILE /> for a truly empty item {} that had no comment
+                    # If there was a comment, an empty <FILE /> might be desired by some. For now, let's print it.
 
-            # First pass: get @-attributes
-            for key, value in file_item.items():
-                if isinstance(key, str) and key.startswith('@'):
-                    has_at_keys = True
-                    attr_name = key[1:]
-                    attributes.append(f"{attr_name}={quoteattr(str(value))}")
+            attribute_strings = []
+            child_tag_strings = []
 
-            # Second pass: get child tags (INLINE, URL, MD5, etc.)
-            for key, value in file_item.items():
-                if isinstance(key, str) and not key.startswith('@'):
-                    key_name = str(key)
-                    if key_name == "INLINE":
+            for key, value in file_item.items(): # Single loop for keys
+                key_str = str(key) # Ensure key is a string
+                if key_str.startswith('@'):
+                    attr_name = key_str[1:]
+                    attribute_strings.append(f"{attr_name}={quoteattr(str(value))}")
+                else:
+                    # This key is for a child tag
+                    tag_name = key_str
+                    if tag_name == "INLINE":
                         inline_file_path = str(value)
                         try:
                             with open(inline_file_path, 'r') as f_inline:
                                 inline_content = f_inline.read()
-                            escaped_inline_content = escape(inline_content)
-                            child_tag_strings.append(f"<INLINE>{escaped_inline_content}</INLINE>")
+                            escaped_content = escape(inline_content)
+                            child_tag_strings.append(f"<INLINE>{escaped_content}</INLINE>")
                         except FileNotFoundError:
-                            error_msg = f"<!-- Error: INLINE file not found: {inline_file_path} -->"
-                            child_tag_strings.append(f"<INLINE>{error_msg}</INLINE>")
+                            error_placeholder = f"<!-- Error: INLINE file not found: {escape(inline_file_path)} -->"
+                            child_tag_strings.append(f"<INLINE>{error_placeholder}</INLINE>")
                         except Exception as e:
-                            error_msg = f"<!-- Error reading INLINE file {inline_file_path}: {escape(str(e))} -->"
-                            child_tag_strings.append(f"<INLINE>{error_msg}</INLINE>")
+                            error_placeholder = f"<!-- Error reading INLINE file {escape(inline_file_path)}: {escape(str(e))} -->"
+                            child_tag_strings.append(f"<INLINE>{error_placeholder}</INLINE>")
                     else: # Handles URL, MD5, and any other non-@ keys
-                        escaped_value = escape(str(value))
-                        child_tag_strings.append(f"<{key_name}>{escaped_value}</{key_name}>")
+                        escaped_content = escape(str(value))
+                        child_tag_strings.append(f"<{tag_name}>{escaped_content}</{tag_name}>")
 
             # Construct and print the <FILE> tag
-            file_tag_start = "<FILE"
-            if attributes: # Only add a space if there are attributes
-                file_tag_start += " " + " ".join(attributes)
+            file_tag_parts = ["<FILE"]
+            if attribute_strings:
+                file_tag_parts.append(" " + " ".join(attribute_strings))
 
-            if not child_tag_strings: # No children, self-closing tag
-                # Only print if there were actual attributes or if the item itself is not empty.
-                # If file_item is empty, attributes list will be empty, has_at_keys false.
-                # If file_item is not empty but no @keys, has_at_keys is false.
-                # We print a <FILE /> tag if there are attributes.
-                # If no attributes but other keys (which would become children), it won't be self-closing.
-                # If truly empty or only non-@ non-child keys, it could be <FILE />.
-                # The current logic will make it <FILE /> if attributes list is populated.
-                # If attributes is empty AND child_tag_strings is empty, what to do?
-                # The problem asks for <FILE ... /> if no INLINE/children.
-                # This means if has_at_keys is true OR file_item is not empty (implying potential non-@ keys that didn't become children),
-                # then a tag should be printed.
-                # Let's simplify: if there are attributes, print. If no attributes but item exists, it implies non-@ keys
-                # which are now handled as children. So if child_tag_strings is empty, AND attributes is empty,
-                # we might print just "<FILE />" if the original item was not empty.
-                # However, the logic for child_tag_strings now means any non-@ key becomes a child.
-                # So, if file_item is not empty, either attributes or child_tag_strings will be populated.
-                if not file_item: # if the original yaml item was empty {} or an empty list item - comment only.
-                    continue # Don't print <FILE /> for a comment-only line.
+            if not child_tag_strings:
+                # If file_item was empty dict {} and no comment printed, we would have continued.
+                # If file_item was not empty dict but resulted in no attributes and no children (e.g. only invalid keys),
+                # it's an edge case. For now, if it's not an empty dict, print the tag.
+                # The only way child_tag_strings and attribute_strings are empty is if file_item was empty or contained unknown key types.
+                # If file_item is not empty, print the tag.
+                if not file_item and not attribute_strings: # only print <FILE /> if it's truly an empty item from YAML that wasn't skipped
+                     # This case should be rare if `if not file_item: continue` is active and effective for {}
+                     # Let's rely on the fact that if file_item is not empty, something will be in attributes or children.
+                     # If file_item was not empty, but yielded no attributes and no children (e.g. `{'!BADKEY': 'value'}`),
+                     # then we'd print `<FILE />`. This seems acceptable.
+                     pass # Avoid printing <FILE /> if there were no attributes AND the original item was empty.
+                          # This is covered by the `if not file_item: continue` at the start of item processing for empty dicts.
 
-                print(f"{file_tag_start} />")
+                # The condition to print a self-closing tag is: there are attributes OR (it's not an empty item AND no children were formed).
+                # More simply: if no children, it's self-closing. But only print if there's something to print (attributes or it was a non-empty map).
+                if attribute_strings or file_item : # If there are attributes, or it was a non-empty map originally
+                    file_tag_parts.append(" />")
+                    print("".join(file_tag_parts))
+                # If file_item was empty AND no attributes, AND no comment, it's skipped earlier.
+                # If file_item was empty AND no attributes, BUT had a comment, the comment is printed, then nothing else. This is desired.
 
             else: # Has child tags
-                print(f"{file_tag_start}>{''.join(child_tag_strings)}</FILE>")
+                file_tag_parts.append(">")
+                file_tag_parts.append("".join(child_tag_strings))
+                file_tag_parts.append("</FILE>")
+                print("".join(file_tag_parts))
 
     elif data and "FILE" in data: # FILE key exists but is not a list
         print(f"Error: 'FILE' key in {yaml_file_path} exists but is not a list.", file=sys.stderr)
