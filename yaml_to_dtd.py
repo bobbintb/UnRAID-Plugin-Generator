@@ -112,5 +112,14 @@ def main():
         print(f"  {entity_str}")
     print("]>")
 
+    # Generate the <PLUGIN ...> tag
+    plugin_attributes = []
+    if entities_dict: # entities_dict would have been populated from try-except block
+        for key in entities_dict.keys():
+            plugin_attributes.append(f'{key}="&{key};"')
+
+    plugin_tag_str = "<PLUGIN " + " ".join(plugin_attributes) + ">"
+    print(plugin_tag_str)
+
 if __name__ == "__main__":
     main()
