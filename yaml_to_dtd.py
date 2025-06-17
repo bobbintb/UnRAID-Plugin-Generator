@@ -121,5 +121,27 @@ def main():
     plugin_tag_str = "<PLUGIN " + " ".join(plugin_attributes) + ">"
     print(plugin_tag_str)
 
+    # Process <CHANGES> block
+    if "CHANGES" in data: # 'data' holds the full parsed YAML
+        changes_file_path = data["CHANGES"]
+        if isinstance(changes_file_path, str):
+            try:
+                with open(changes_file_path, 'r') as f_changes:
+                    changes_content = f_changes.read()
+
+                print("<CHANGES>")
+                print(changes_content, end='') # end='' to avoid double newline if content ends with one
+                print("</CHANGES>")
+            except FileNotFoundError:
+                import sys
+                print(f"Error: Changes file '{changes_file_path}' specified in 'CHANGES' key not found.", file=sys.stderr)
+            except Exception as e:
+                import sys
+                print(f"Error reading changes file '{changes_file_path}': {e}", file=sys.stderr)
+        else:
+            import sys
+            print(f"Error: Value of 'CHANGES' key must be a string (filepath), but found {type(changes_file_path)}.", file=sys.stderr)
+
+
 if __name__ == "__main__":
     main()
