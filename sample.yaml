@@ -1,0 +1,24 @@
+invoice:
+  id: 123
+  customer:
+    name: John Doe
+    email: john.doe@example.com
+    address:
+      street: 123 Main St
+      city: Anytown
+  items:
+    - item:
+        name: Laptop
+        quantity: 1
+        price: 1200.00
+    - item:
+        name: Mouse
+        quantity: 2
+        price: 25.00
+  tags:
+    - important
+    - urgent
+  payment: null # Example of a null value
+  notes: |
+    This is a
+    multi-line string.

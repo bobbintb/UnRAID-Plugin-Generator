@@ -1,0 +1,16 @@
+<!ELEMENT id (#PCDATA)>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT email (#PCDATA)>
+<!ELEMENT street (#PCDATA)>
+<!ELEMENT city (#PCDATA)>
+<!ELEMENT address (street, city)>
+<!ELEMENT customer (name, email, address)>
+<!ELEMENT quantity (#PCDATA)>
+<!ELEMENT price (#PCDATA)>
+<!ELEMENT item (name, quantity, price)>
+<!ELEMENT items (item+)>
+<!ELEMENT tag (#PCDATA)>
+<!ELEMENT tags (tag+)>
+<!ELEMENT payment ANY>
+<!ELEMENT notes (#PCDATA)>
+<!ELEMENT invoice (id, customer, items, tags, payment, notes)>
