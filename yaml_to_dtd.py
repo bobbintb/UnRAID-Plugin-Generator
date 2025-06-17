@@ -1,10 +1,38 @@
 # import yaml # Replaced by ruamel.yaml
 from ruamel.yaml import YAML
-from xml.sax.saxutils import quoteattr, escape
+from xml.sax.saxutils import quoteattr, escape as std_escape # Rename to avoid conflict
 import sys # For stderr
+import re # For smart_escape
 
 # Old commented out functions (yaml_to_dtd, _process_yaml_node) are removed for brevity
 # as they are not relevant to the current task.
+
+def smart_escape(text, is_attribute=False):
+    """
+    Escapes XML special characters in text. If text is already a valid entity reference,
+    it's returned unchanged.
+    """
+    text_str = str(text)
+    # Regex to check for common well-formed entity references (named, decimal, hex)
+    # Allows &name; &#123; &#xABC;
+    # It's a simplified check; a full XML parser's entity logic is more complex.
+    entity_pattern = r"^&[a-zA-Z_#][a-zA-Z0-9_#\.-]*;$" # Hyphen moved, dot escaped (though not strictly necessary in [])
+    if re.match(entity_pattern, text_str):
+        return text_str  # Already an entity, return as is
+
+    # Standard XML escaping for characters
+    # Must replace '&' first
+    text_str = text_str.replace("&", "&amp;")
+    text_str = text_str.replace("<", "&lt;")
+    text_str = text_str.replace(">", "&gt;")
+
+    if is_attribute:
+        text_str = text_str.replace("\"", "&quot;")
+        # For attributes, some also escape ' and \n, \r, \t depending on context,
+        # but &quot; is the primary one for values in double quotes.
+        # text_str = text_str.replace("'", "&apos;") # &apos; is valid but less universally supported
+
+    return text_str
 
 def generate_dtd_entities(entities_dict):
     """
@@ -67,9 +95,17 @@ def main():
 
     # Generate and print <PLUGIN> tag
     plugin_attributes = []
-    for key in entities_dict.keys():
-        plugin_attributes.append(f'{str(key)}="&{str(key)};"')
-    plugin_tag_str = "<PLUGIN " + " ".join(plugin_attributes) + ">"
+    for key, value in entities_dict.items(): # Iterate through key-value pairs
+        attr_name = str(key)
+        # Get the raw value from entities_dict. smart_escape will convert to str.
+        escaped_value = smart_escape(value, is_attribute=True)
+        plugin_attributes.append(f'{attr_name}="{escaped_value}"')
+
+    # Ensure there's a space after <PLUGIN if there are attributes
+    if plugin_attributes:
+        plugin_tag_str = "<PLUGIN " + " ".join(plugin_attributes) + ">"
+    else:
+        plugin_tag_str = "<PLUGIN>" # Or "<PLUGIN />" if that's preferred for no attributes
     print(plugin_tag_str)
 
     # Process <CHANGES> block
@@ -138,7 +174,8 @@ def main():
                 key_str = str(key) # Ensure key is a string
                 if key_str.startswith('@'):
                     attr_name = key_str[1:]
-                    attribute_strings.append(f"{attr_name}={quoteattr(str(value))}")
+                    # quoteattr handles adding the quotes, smart_escape(..., is_attribute=True) does not add outer quotes.
+                    attribute_strings.append(f'{attr_name}="{smart_escape(value, is_attribute=True)}"')
                 else:
                     # This key is for a child tag
                     tag_name = key_str
@@ -147,16 +184,17 @@ def main():
                         try:
                             with open(inline_file_path, 'r') as f_inline:
                                 inline_content = f_inline.read()
-                            escaped_content = escape(inline_content)
+                            # Use std_escape for default INLINE content, as per new requirement
+                            escaped_content = std_escape(inline_content)
                             child_tag_strings.append(f"<INLINE>{escaped_content}</INLINE>")
                         except FileNotFoundError:
-                            error_placeholder = f"<!-- Error: INLINE file not found: {escape(inline_file_path)} -->"
+                            error_placeholder = f"<!-- Error: INLINE file not found: {smart_escape(inline_file_path, is_attribute=False)} -->"
                             child_tag_strings.append(f"<INLINE>{error_placeholder}</INLINE>")
                         except Exception as e:
-                            error_placeholder = f"<!-- Error reading INLINE file {escape(inline_file_path)}: {escape(str(e))} -->"
+                            error_placeholder = f"<!-- Error reading INLINE file {smart_escape(inline_file_path, is_attribute=False)}: {smart_escape(str(e), is_attribute=False)} -->"
                             child_tag_strings.append(f"<INLINE>{error_placeholder}</INLINE>")
                     else: # Handles URL, MD5, and any other non-@ keys
-                        escaped_content = escape(str(value))
+                        escaped_content = smart_escape(value, is_attribute=False)
                         child_tag_strings.append(f"<{tag_name}>{escaped_content}</{tag_name}>")
 
             # Construct and print the <FILE> tag
