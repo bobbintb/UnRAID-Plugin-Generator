@@ -4,54 +4,42 @@ ENTITIES:
   repo : UnRAID-DiRT
   tag : test
   launch : Settings/Deduplication in Real-Time
-  pluginURL : https://github.com/&author;/&repo;/releases/download/&tag;/&name;.plg
-  packageURL : https://github.com/&author;/&repo;/releases/download/&tag;/&name;.txz
-  source : /boot/config/plugins/&name;/&name;
+  pluginURL : https://github.com/&author;/&repo;/releases/download/&tag;/&name;.plg # Uses other entities
+  packageURL : https://github.com/&author;/&repo;/releases/download/&tag;/&name;.txz # Uses other entities
+  source : /boot/config/plugins/&name;/&name; # Uses other entities
   icon : fa-search-minus
   min : 6.1.9
   version : 2025.02.11
   MD5 : b31ca4f4cc86325d132739c93f79b922
-  testAttr: 'A "quote" & an ampersand' # Added for testing PLUGIN attributes
-  myKnownEntity: "Known Entity Value"   # Added for CDATA test
+  description: 'A "cool" & useful plugin' # For PLUGIN attribute escaping
+  myKnownEntity: "Known Entity Value for CDATA" # Renamed slightly for clarity
+  # testEntity is NOT defined here, so &testEntity; in rc.dirt is not a known DTD entity
 
 CHANGES: ./README.md
 
 FILE:
-- #STARTUP SCRIPT
+- #STARTUP SCRIPT (Existing INLINE - for std_escape)
   '@Name': /etc/rc.d/rc.dirt
   '@Mode': '0775'
-  INLINE: ./.plugin/rc.dirt
-- #PRE-INSTALL SCRIPT
-  '@Run': /bin/bash
-  '@Method': install
-  INLINE: ./.plugin/pre-install.sh
-- #SOURCE PACKAGE
-  '@Name': "&source;.txz"
+  INLINE: ./.plugin/rc.dirt # Content: echo "&testEntity; & < > \"quotes\"";
+- #SOURCE PACKAGE (Existing URL/MD5 with entity refs)
+  '@Name': "&source;.txz" # Attribute with entity ref + literal
   '@Run': "upgradepkg --install-new --reinstall"
-  URL: "&packageURL;"
-  MD5: "&MD5;"
-- #POST-INSTALL SCRIPT
-  '@Run': /bin/bash
-  '@Method': install
-  INLINE: ./.plugin/post-install.sh
-- #NOFILES
-  '@Run': /bin/bash
-  '@Method': remove
-  INLINE: ./.plugin/remove.sh
-- #GENERIC TAG TEST
+  URL: "&packageURL;" # Child tag with entity ref
+  MD5: "&MD5;"        # Child tag with entity ref
+- #GENERIC TAG TEST (New child tag with special chars)
   '@Name': 'genericTest'
-  SpecialTag: 'Text with < & > symbols'
-- #DEFAULT INLINE TEST
-  '@Name': 'inlineTest'
-  INLINE: './test_inline.sh'
-- #CDATA TEST
+  Details: "Contains < & > symbols"
+- #CDATA TEST (New)
   '@Name': 'cdataTest'
-  CDATA: './test_cdata.txt'
-- #CO-OCCURRENCE TEST (INLINE WINS)
+  CDATA: './test_cdata_final.txt' # Content: raw < & > data &myKnownEntity; and &description;
+- #CO-OCCURRENCE TEST (INLINE WINS - New)
   '@Name': 'coOccurrenceTest1'
-  CDATA: './test_cdata.txt' # This will be ignored due to order
-  INLINE: './test_inline.sh' # This should be used
-- #CO-OCCURRENCE TEST (CDATA WINS)
+  Comment: 'INLINE should win as it is last.'
+  CDATA: './test_cdata_final.txt'
+  INLINE: './test_inline_final.sh' # Content: echo "INLINE version wins: &description;";
+- #CO-OCCURRENCE TEST (CDATA WINS - New)
   '@Name': 'coOccurrenceTest2'
-  INLINE: './test_inline.sh' # This will be ignored due to order
-  CDATA: './test_cdata.txt'   # This should be used
+  Comment: 'CDATA should win as it is last.'
+  INLINE: './test_inline_final.sh'
+  CDATA: './test_cdata_final.txt'

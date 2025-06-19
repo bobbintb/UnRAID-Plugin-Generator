@@ -1,2 +1,1 @@
-Hello & Welcome; &entity;
-This line has <>&" characters.
+echo &testEntity; & < >

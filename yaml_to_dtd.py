@@ -1,55 +1,27 @@
 # import yaml # Replaced by ruamel.yaml
 from ruamel.yaml import YAML
-from xml.sax.saxutils import quoteattr, escape as std_escape # Rename to avoid conflict
-import sys # For stderr
-import re # For smart_escape
+from xml.sax.saxutils import quoteattr, escape as std_escape
+import sys
+import re
 
-# Global list for known entity names
+from xml.dom import minidom
+from xml.parsers.expat import ExpatError
+
 KNOWN_ENTITY_NAMES = []
-
-# Old commented out functions (yaml_to_dtd, _process_yaml_node) are removed for brevity
-# as they are not relevant to the current task.
+_SORTED_KNOWN_ENTITY_NAMES_CACHE = []
 
 def populate_known_entities(entities_dict):
-    global KNOWN_ENTITY_NAMES
+    global KNOWN_ENTITY_NAMES, _SORTED_KNOWN_ENTITY_NAMES_CACHE
     if isinstance(entities_dict, dict):
         KNOWN_ENTITY_NAMES = [str(key) for key in entities_dict.keys()]
+        _SORTED_KNOWN_ENTITY_NAMES_CACHE = sorted(KNOWN_ENTITY_NAMES, key=len, reverse=True)
     else:
-        KNOWN_ENTITY_NAMES = [] # Ensure it's an empty list
-
-# def smart_escape(text, is_attribute=False):
-#     """
-#     Escapes XML special characters in text. If text is already a valid entity reference,
-#     it's returned unchanged.
-#     """
-#     text_str = str(text).strip() # Added .strip() for robustness
-#     # Regex to check for common well-formed entity references (named, decimal, hex)
-#     # Allows &name; &#123; &#xABC;
-#     # It's a simplified check; a full XML parser's entity logic is more complex.
-#     entity_pattern = r"^&[a-zA-Z_#][a-zA-Z0-9_#\.-]*;$" # Hyphen moved, dot escaped (though not strictly necessary in [])
-#     if re.match(entity_pattern, text_str):
-#         return text_str  # Already an entity, return as is
-#
-#     # Standard XML escaping for characters
-#     # Must replace '&' first
-#     text_str = text_str.replace("&", "&amp;")
-#     text_str = text_str.replace("<", "&lt;")
-#     text_str = text_str.replace(">", "&gt;")
-#
-#     if is_attribute:
-#         text_str = text_str.replace("\"", "&quot;")
-#         # For attributes, some also escape ' and \n, \r, \t depending on context,
-#         # but &quot; is the primary one for values in double quotes.
-#         # text_str = text_str.replace("'", "&apos;") # &apos; is valid but less universally supported
-#
-#     return text_str
+        KNOWN_ENTITY_NAMES = []
+        _SORTED_KNOWN_ENTITY_NAMES_CACHE = []
 
 def smart_escape_preserving_embedded(text, is_attribute=False):
-    text_str = str(text) # No .strip() here initially, let re.split handle segments
-
-    if not KNOWN_ENTITY_NAMES:
-        # Fallback: If no known entities, apply basic full escaping
-        # This also implicitly handles cases where KNOWN_ENTITY_NAMES might be None if populate wasn't called (defensive)
+    text_str = str(text)
+    if not _SORTED_KNOWN_ENTITY_NAMES_CACHE:
         escaped_text = text_str.replace("&", "&amp;")
         escaped_text = escaped_text.replace("<", "&lt;")
         escaped_text = escaped_text.replace(">", "&gt;")
@@ -57,21 +29,8 @@ def smart_escape_preserving_embedded(text, is_attribute=False):
             escaped_text = escaped_text.replace("\"", "&quot;")
         return escaped_text
 
-    # Sort by length descending to match longest possible entity first (e.g., &longname; before &long;)
-    # This is crucial for correctness if some entity names are substrings of others.
-    sorted_entity_names = sorted(KNOWN_ENTITY_NAMES, key=len, reverse=True)
-
-    # Create a regex pattern to find any of our known entities.
-    # The pattern should capture the full entity reference, e.g., (&(entity1|entity2);)
-    # This ensures that re.split() includes the delimiters (the entities themselves) in the result.
-    # Make sure entity names are re.escaped if they could contain regex special characters (unlikely for typical entity names).
-    # For this use case, entity names are from YAML keys, typically simple strings.
-    entity_names_pattern_part = "|".join([re.escape(name) for name in sorted_entity_names])
-
-    # If entity_names_pattern_part is empty (e.g. KNOWN_ENTITY_NAMES was empty but not None),
-    # also fallback to full escaping to avoid re.compile error with empty pattern part.
+    entity_names_pattern_part = "|".join([re.escape(name) for name in _SORTED_KNOWN_ENTITY_NAMES_CACHE])
     if not entity_names_pattern_part:
-        # Same fallback as `if not KNOWN_ENTITY_NAMES:`
         escaped_text = text_str.replace("&", "&amp;")
         escaped_text = escaped_text.replace("<", "&lt;")
         escaped_text = escaped_text.replace(">", "&gt;")
@@ -79,33 +38,21 @@ def smart_escape_preserving_embedded(text, is_attribute=False):
             escaped_text = escaped_text.replace("\"", "&quot;")
         return escaped_text
 
-    # Regex to find known entities: &name1; or &name2; etc.
-    # We capture only the name part to verify against KNOWN_ENTITY_NAMES, but use group(0) for the full entity.
     entity_regex = re.compile(f"&({entity_names_pattern_part});")
-
     processed_parts = []
     last_end = 0
     for match in entity_regex.finditer(text_str):
         start, end = match.span()
-        # entity_name_matched = match.group(1) # The captured name (e.g., "author")
-                                             # Not strictly needed if we just use match.group(0)
-
-        # Append the text segment before this match, duly escaped
         non_entity_segment = text_str[last_end:start]
-        # Basic escaping for non-entity segments
         escaped_segment = non_entity_segment.replace("&", "&amp;")
         escaped_segment = escaped_segment.replace("<", "&lt;")
         escaped_segment = escaped_segment.replace(">", "&gt;")
         if is_attribute:
             escaped_segment = escaped_segment.replace("\"", "&quot;")
         processed_parts.append(escaped_segment)
-
-        # Append the full entity reference itself (e.g., "&author;")
-        processed_parts.append(match.group(0)) # group(0) is the full match e.g. &author;
-
+        processed_parts.append(match.group(0))
         last_end = end
 
-    # Append the remaining part of the string after the last match, duly escaped
     remaining_segment = text_str[last_end:]
     escaped_remaining_segment = remaining_segment.replace("&", "&amp;")
     escaped_remaining_segment = escaped_remaining_segment.replace("<", "&lt;")
@@ -113,54 +60,43 @@ def smart_escape_preserving_embedded(text, is_attribute=False):
     if is_attribute:
         escaped_remaining_segment = escaped_remaining_segment.replace("\"", "&quot;")
     processed_parts.append(escaped_remaining_segment)
-
     return "".join(processed_parts)
 
 def generate_dtd_entities(entities_dict):
-    """
-    Generates DTD entity strings from a dictionary.
-    Pads keys for visual alignment.
-    """
-    if not entities_dict:
-        return []
-
+    if not entities_dict: return []
     max_key_length = 0
-    if entities_dict: # Ensure entities_dict is not empty before finding max length
-        # Ensure all keys are strings before calling len()
-        str_keys = [str(key) for key in entities_dict.keys()]
-        if str_keys:
-             max_key_length = max(len(key) for key in str_keys)
+    str_keys = [str(key) for key in entities_dict.keys()]
+    if str_keys: max_key_length = max(len(key) for key in str_keys)
 
     dtd_entity_strings = []
     for key, value in entities_dict.items():
-        value_str = str(value).replace('"', '&quot;')
-        # Ensure key is string for padding calculation
+        # Use smart_escape_preserving_embedded for DTD values to preserve known entities within them.
+        # is_attribute=True ensures quotes are handled if the DTD value itself contains quotes.
+        value_str = smart_escape_preserving_embedded(value, is_attribute=True)
         padding = " " * (max_key_length - len(str(key)))
         dtd_entity_strings.append(f'<!ENTITY {str(key)}{padding} "{value_str}">')
     return dtd_entity_strings
 
 def main():
     yaml_file_path = "test.yaml"
-    entities_dict = {} # Initialize to ensure it's always a dict
+    entities_dict_from_yaml = {}
     data = None
+    dtd_buffer = []
+    # xml_elements_buffer was used for parts; now plugin_content_buffer used for content of PLUGIN
 
     yaml_parser = YAML(typ='rt')
     try:
-        with open(yaml_file_path, 'r') as f:
-            data = yaml_parser.load(f)
-
+        with open(yaml_file_path, 'r') as f: data = yaml_parser.load(f)
         if data and "ENTITIES" in data and isinstance(data["ENTITIES"], dict):
-            entities_dict = data["ENTITIES"]
-        elif data and "ENTITIES" in data: # Exists but not a dict
+            entities_dict_from_yaml = data["ENTITIES"]
+        # ... (error handling for ENTITIES and file ops as before) ...
+        elif data and "ENTITIES" in data:
             print(f"Error: 'ENTITIES' key in {yaml_file_path} is not a dictionary.", file=sys.stderr)
-            # entities_dict remains {}
-        elif data: # Data loaded but ENTITIES key missing
+        elif data:
             print(f"Error: 'ENTITIES' key not found in {yaml_file_path}.", file=sys.stderr)
-            # entities_dict remains {}
-        else: # Data could not be loaded or is empty
+        else:
             print(f"Error: No data loaded from {yaml_file_path} or data is empty.", file=sys.stderr)
-            return # Critical error, cannot proceed
-
+            return
     except FileNotFoundError:
         print(f"Error: YAML file not found at {yaml_file_path}", file=sys.stderr)
         return
@@ -168,41 +104,36 @@ def main():
         print(f"Error parsing YAML file '{yaml_file_path}': {e}", file=sys.stderr)
         return
 
-    # Populate the global list of known entity names
-    populate_known_entities(entities_dict)
+    populate_known_entities(entities_dict_from_yaml)
 
-    # Generate and print DTD Entities
-    dtd_entities = generate_dtd_entities(entities_dict)
-    print("<!DOCTYPE PLUGIN [")
-    for entity_str in dtd_entities:
-        print(f"  {entity_str}")
-    print("]>")
+    generated_dtds = generate_dtd_entities(entities_dict_from_yaml)
+    dtd_buffer.append("<!DOCTYPE PLUGIN [")
+    for entity_str in generated_dtds:
+        dtd_buffer.append(f"  {entity_str}")
+    dtd_buffer.append("]>")
 
-    # Generate and print <PLUGIN> tag
-    plugin_attributes = []
-    for key, value in entities_dict.items(): # Iterate through key-value pairs
+    # Build XML string with DTD entities PRESERVED
+    plugin_attributes_preserved = []
+    for key, value in entities_dict_from_yaml.items():
         attr_name = str(key)
-        # Get the raw value from entities_dict. smart_escape_preserving_embedded will convert to str.
         escaped_value = smart_escape_preserving_embedded(value, is_attribute=True)
-        plugin_attributes.append(f'{attr_name}="{escaped_value}"')
+        plugin_attributes_preserved.append(f'{attr_name}="{escaped_value}"')
 
-    # Ensure there's a space after <PLUGIN if there are attributes
-    if plugin_attributes:
-        plugin_tag_str = "<PLUGIN " + " ".join(plugin_attributes) + ">"
-    else:
-        plugin_tag_str = "<PLUGIN>" # Or "<PLUGIN />" if that's preferred for no attributes
-    print(plugin_tag_str)
+    plugin_tag_opening_str = "<PLUGIN>" # Default if no attributes
+    if plugin_attributes_preserved:
+        plugin_tag_opening_str = "<PLUGIN " + " ".join(plugin_attributes_preserved) + ">"
 
-    # Process <CHANGES> block
+    plugin_content_buffer = []
+
     if data and "CHANGES" in data:
         changes_file_path = data["CHANGES"]
         if isinstance(changes_file_path, str):
             try:
-                with open(changes_file_path, 'r') as f_changes:
-                    changes_content = f_changes.read()
-                print("<CHANGES>")
-                print(changes_content, end='')
-                print("</CHANGES>")
+                with open(changes_file_path, 'r') as f_changes: changes_content = f_changes.read()
+                plugin_content_buffer.append("<CHANGES>")
+                plugin_content_buffer.append(smart_escape_preserving_embedded(changes_content, is_attribute=False))
+                plugin_content_buffer.append("</CHANGES>")
+            # ... (error handling for CHANGES file as before) ...
             except FileNotFoundError:
                 print(f"Error: Changes file '{changes_file_path}' specified in 'CHANGES' key not found.", file=sys.stderr)
             except Exception as e:
@@ -210,159 +141,130 @@ def main():
         else:
             print(f"Error: Value of 'CHANGES' key must be a string (filepath), but found {type(changes_file_path)}.", file=sys.stderr)
 
-    # Process FILE list
+
     if data and "FILE" in data and isinstance(data["FILE"], list):
-        file_list = data["FILE"] # This is a CommentedSeq
+        file_list = data["FILE"]
         for item_idx, file_item in enumerate(file_list):
-            if not isinstance(file_item, dict): # In ruamel.yaml, dicts are CommentedMap
+            # ... (comment processing and empty item skipping as before) ...
+            if not isinstance(file_item, dict):
                 print(f"Warning: Item in FILE list is not a dictionary: {file_item}", file=sys.stderr)
                 continue
 
             comment_str = None
-            # Try to get comments attached to the sequence item
-            # file_list.ca.items is a dictionary where keys are item indices
             if item_idx in file_list.ca.items:
                 comment_info_for_item = file_list.ca.items[item_idx]
-                # comment_info_for_item can be a list: [comment_before_marker, comment_after_marker, comment_after_value, comment_on_next_line]
-                # For comments like '- # Comment Text', it's typically after the marker. So, index [1].
                 if comment_info_for_item and len(comment_info_for_item) > 1 and comment_info_for_item[1]:
                     comment_tokens = comment_info_for_item[1]
                     if comment_tokens:
-                        # A comment might be a list of CommentToken objects
                         raw_comment_text = "".join([ct.value for ct in comment_tokens]).strip()
                         if raw_comment_text.startswith("#"):
                             comment_text = raw_comment_text[1:].strip()
                             comment_str = f"<!-- {comment_text} -->"
+            if comment_str: plugin_content_buffer.append(comment_str)
 
-            if comment_str:
-                print(comment_str)
+            if not file_item and not comment_str: continue
 
-            attributes = []
-            # Skip if file_item is empty (e.g. a list item that's just a comment placeholder)
-            if not file_item and not (item_idx in file_list.ca.items and file_list.ca.items[item_idx][1]): # ensure it's not just a comment
-                 # If file_item is empty AND it doesn't have an associated comment, then skip.
-                 # If it has a comment, it will be printed, and then we'd print an empty <FILE /> if we don't continue.
-                 # The goal is to not print <FILE /> for truly empty items.
-                 # A file_item that is just a comment in YAML (e.g. '- # Just a comment line') results in an empty file_item (None).
-                 # In ruamel.yaml, an empty item in a sequence that only had a comment might result in file_item being None.
-                 # The check `if not isinstance(file_item, dict)` handles `None` items.
-                 # If file_item is an empty dict `{}`, it will not be skipped by `isinstance`.
-                 if not file_item: # file_item is an empty dict {}
-                    if not comment_str: # And no comment was printed for it
-                        continue # Skip printing <FILE /> for a truly empty item {} that had no comment
-                    # If there was a comment, an empty <FILE /> might be desired by some. For now, let's print it.
-
-            attribute_strings = []
-            generic_child_tag_strings = [] # Renamed from child_tag_strings
-            inline_key_info = None
-            cdata_key_info = None
+            attribute_strings, generic_child_tag_strings = [], []
+            inline_key_info, cdata_key_info = None, None
             key_order_counter = 0
 
-            for key, value in file_item.items(): # Single loop for keys
-                key_order_counter += 1
-                key_str = str(key)
-
-                if key_str == 'INLINE':
-                    inline_key_info = {'path': str(value), 'order': key_order_counter}
-                    # INLINE content processing is deferred
-                elif key_str == 'CDATA':
-                    cdata_key_info = {'path': str(value), 'order': key_order_counter}
-                    # CDATA content processing is deferred
+            for key, value in file_item.items():
+                key_order_counter += 1; key_str = str(key)
+                if key_str == 'INLINE': inline_key_info = {'path': str(value), 'order': key_order_counter}
+                elif key_str == 'CDATA': cdata_key_info = {'path': str(value), 'order': key_order_counter}
                 elif key_str.startswith('@'):
-                    attr_name = key_str[1:]
-                    attribute_strings.append(f'{attr_name}="{smart_escape_preserving_embedded(value, is_attribute=True)}"')
+                    attribute_strings.append(f'{key_str[1:]}="{smart_escape_preserving_embedded(value, is_attribute=True)}"')
                 else:
-                    # This key is for a generic child tag (URL, MD5, SpecialTag, etc.)
-                    tag_name = key_str
-                    escaped_content = smart_escape_preserving_embedded(value, is_attribute=False)
-                    generic_child_tag_strings.append(f"<{tag_name}>{escaped_content}</{tag_name}>")
+                    generic_child_tag_strings.append(f"<{key_str}>{smart_escape_preserving_embedded(value, is_attribute=False)}</{key_str}>")
 
-            # --- INLINE/CDATA Decision Logic ---
             final_inline_tag_string = None
-
             file_item_identifier = f"item at index {item_idx}"
-            # Try to get @Name for better identifier in warnings
-            for attr_str in attribute_strings: # attribute_strings is like ['Name="val"', 'Mode="val"']
-                if attr_str.startswith('Name="'):
-                    # Extract value from Name="value"
-                    name_val = attr_str[len('Name="'):-1] # Remove Name=" and trailing "
-                    file_item_identifier = f"FILE item with @Name='{name_val}'"
-                    break
+            current_attrs_dict = {k.split('=')[0]: k.split('=')[1][1:-1] for k in attribute_strings if '=' in k}
+            if 'Name' in current_attrs_dict:
+                 file_item_identifier = f"FILE item with @Name='{current_attrs_dict['Name']}'"
 
+            use_cdata = False
             if inline_key_info and cdata_key_info:
-                print(f"Warning: {file_item_identifier} has both INLINE and CDATA keys. Using the one that appears last in the YAML.", file=sys.stderr)
-                if cdata_key_info['order'] > inline_key_info['order']:
-                    # CDATA is last, use CDATA
-                    try:
-                        with open(cdata_key_info['path'], 'r') as f_cdata:
-                            raw_content = f_cdata.read()
+                print(f"Warning: {file_item_identifier} has both INLINE and CDATA. Using last.", file=sys.stderr)
+                if cdata_key_info['order'] > inline_key_info['order']: use_cdata = True
+            elif cdata_key_info: use_cdata = True
+
+            info_to_use = None
+            if use_cdata: info_to_use = cdata_key_info
+            elif inline_key_info: info_to_use = inline_key_info
+
+            if info_to_use: # Process INLINE/CDATA content choice
+                try:
+                    with open(info_to_use['path'], 'r') as f_content: raw_content = f_content.read()
+                    if use_cdata:
                         final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
-                    except FileNotFoundError:
-                        raw_content = f"<!-- Error: CDATA file not found: {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)} -->"
-                        final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>" # Wrap error in CDATA too
-                    except Exception as e:
-                        raw_content = f"<!-- Error reading CDATA file {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
-                        final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
-                else:
-                    # INLINE is last (or same order, implies INLINE first if stable sort, or as per dict order), use INLINE
-                    try:
-                        with open(inline_key_info['path'], 'r') as f_inline:
-                            raw_content = f_inline.read()
+                    else:
                         final_inline_tag_string = f"<INLINE>{std_escape(raw_content)}</INLINE>"
-                    except FileNotFoundError:
-                        raw_content = f"<!-- Error: INLINE file not found: {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)} -->"
-                        final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>" # Error is already an XML comment
-                    except Exception as e:
-                        raw_content = f"<!-- Error reading INLINE file {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
-                        final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>"
-
-            elif cdata_key_info:
-                # Only CDATA found
-                try:
-                    with open(cdata_key_info['path'], 'r') as f_cdata:
-                        raw_content = f_cdata.read()
-                    final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
+                # ... (error handling for INLINE/CDATA file read as before) ...
                 except FileNotFoundError:
-                    raw_content = f"<!-- Error: CDATA file not found: {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)} -->"
-                    final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
+                    err_type = "CDATA" if use_cdata else "INLINE"
+                    error_val = smart_escape_preserving_embedded(info_to_use['path'], False)
+                    raw_content = f"<!-- Error: {err_type} file not found: {error_val} -->"
+                    if use_cdata: final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
+                    else: final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>"
                 except Exception as e:
-                    raw_content = f"<!-- Error reading CDATA file {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
-                    final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
+                    err_type = "CDATA" if use_cdata else "INLINE"
+                    path_val = smart_escape_preserving_embedded(info_to_use['path'], False)
+                    e_val = smart_escape_preserving_embedded(str(e), False)
+                    raw_content = f"<!-- Error reading {err_type} file {path_val}: {e_val} -->"
+                    if use_cdata: final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
+                    else: final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>"
 
-            elif inline_key_info:
-                # Only INLINE found
-                try:
-                    with open(inline_key_info['path'], 'r') as f_inline:
-                        raw_content = f_inline.read()
-                    final_inline_tag_string = f"<INLINE>{std_escape(raw_content)}</INLINE>"
-                except FileNotFoundError:
-                    raw_content = f"<!-- Error: INLINE file not found: {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)} -->"
-                    final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>"
-                except Exception as e:
-                    raw_content = f"<!-- Error reading INLINE file {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
-                    final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>"
 
-            if final_inline_tag_string:
-                generic_child_tag_strings.append(final_inline_tag_string) # Add to other children like URL, MD5
+            if final_inline_tag_string: generic_child_tag_strings.append(final_inline_tag_string)
 
-            # Construct and print the <FILE> tag
             file_tag_parts = ["<FILE"]
-            if attribute_strings:
-                file_tag_parts.append(" " + " ".join(attribute_strings))
+            if attribute_strings: file_tag_parts.append(" " + " ".join(attribute_strings))
+            if not generic_child_tag_strings:
+                if attribute_strings or file_item: plugin_content_buffer.append("".join(file_tag_parts) + " />")
+            else:
+                file_tag_parts.extend([">", "".join(generic_child_tag_strings), "</FILE>"])
+                plugin_content_buffer.append("".join(file_tag_parts))
+    elif data and "FILE" in data:
+        print(f"Error: 'FILE' key in {yaml_file_path} is not a list.", file=sys.stderr)
 
-            if not generic_child_tag_strings: # Now includes the final INLINE tag if one was generated
-                if attribute_strings or file_item:
-                    file_tag_parts.append(" />")
-                    print("".join(file_tag_parts))
-            else: # Has child tags (could be generic ones, or the INLINE, or both)
-                file_tag_parts.append(">")
-                file_tag_parts.append("".join(generic_child_tag_strings))
-                file_tag_parts.append("</FILE>")
-                print("".join(file_tag_parts))
+    # Combine plugin tag with its content that's already processed for entities by smart_escape_preserving_embedded
+    full_xml_content_list_preserved = [plugin_tag_opening_str]
+    full_xml_content_list_preserved.extend(plugin_content_buffer)
+    full_xml_content_list_preserved.append("</PLUGIN>")
 
-    elif data and "FILE" in data: # FILE key exists but is not a list
-        print(f"Error: 'FILE' key in {yaml_file_path} exists but is not a list.", file=sys.stderr)
+    plugin_xml_with_entities = "\n".join(full_xml_content_list_preserved)
 
+    # REMOVE the pre-minidom entity resolution loop.
+    # The string passed to minidom will now include the DTD and unresolved entities.
+    # resolved_xml_string_for_minidom = xml_string_with_preserved_entities
+    # if _SORTED_KNOWN_ENTITY_NAMES_CACHE and entities_dict_from_yaml:
+    #    # ... (LOOP WAS HERE) ...
+
+    dtd_string = "\n".join(dtd_buffer)
+    string_for_minidom = dtd_string + "\n" + plugin_xml_with_entities
+
+    final_xml_output_str = ""
+    if string_for_minidom.strip():
+        try:
+            # Ensure minidom parses the DTD by using the full string_for_minidom
+            dom = minidom.parseString(string_for_minidom)
+            # Pretty-print starting from the document element (<PLUGIN>)
+            pretty_xml_string = dom.documentElement.toprettyxml(indent="\t")
+            final_xml_output_str = pretty_xml_string
+        except ExpatError as e:
+            print(f"Error: XML parsing failed during pretty-printing (entities might be unresolvable by minidom): {e}\nFalling back to non-pretty XML (with entities preserved).", file=sys.stderr)
+            final_xml_output_str = plugin_xml_with_entities # Fallback to XML with entities, not DTD
+        except Exception as e:
+            print(f"Error: An unexpected error occurred during pretty-printing: {e}\nFalling back to non-pretty XML (with entities preserved).", file=sys.stderr)
+            final_xml_output_str = plugin_xml_with_entities
+
+    # Print DTD separately
+    if dtd_string:
+        print(dtd_string)
+    # Print the (potentially pretty-printed) XML part
+    if final_xml_output_str:
+        print(final_xml_output_str)
 
 if __name__ == "__main__":
     main()
