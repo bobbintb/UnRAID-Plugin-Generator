@@ -140,228 +140,259 @@ def generate_dtd_entities(entities_dict):
     return dtd_entity_strings
 
 def main():
-    yaml_file_path = "test.yaml"
-    entities_dict = {} # Initialize to ensure it's always a dict
-    data = None
-
-    yaml_parser = YAML(typ='rt')
     try:
-        with open(yaml_file_path, 'r') as f:
-            data = yaml_parser.load(f)
+        yaml_file_path = "test.yaml"
+        entities_dict = {} # Initialize to ensure it's always a dict
+        data = None
 
-        if data and "ENTITIES" in data and isinstance(data["ENTITIES"], dict):
-            entities_dict = data["ENTITIES"]
-        elif data and "ENTITIES" in data: # Exists but not a dict
-            print(f"Error: 'ENTITIES' key in {yaml_file_path} is not a dictionary.", file=sys.stderr)
-            # entities_dict remains {}
-        elif data: # Data loaded but ENTITIES key missing
-            print(f"Error: 'ENTITIES' key not found in {yaml_file_path}.", file=sys.stderr)
-            # entities_dict remains {}
-        else: # Data could not be loaded or is empty
-            print(f"Error: No data loaded from {yaml_file_path} or data is empty.", file=sys.stderr)
-            return # Critical error, cannot proceed
+        yaml_parser = YAML(typ='rt')
+        try:
+            with open(yaml_file_path, 'r') as f:
+                data = yaml_parser.load(f)
 
-    except FileNotFoundError:
-        print(f"Error: YAML file not found at {yaml_file_path}", file=sys.stderr)
-        return
-    except Exception as e:
-        print(f"Error parsing YAML file '{yaml_file_path}': {e}", file=sys.stderr)
-        return
+            if data and "ENTITIES" in data and isinstance(data["ENTITIES"], dict):
+                entities_dict = data["ENTITIES"]
+            elif data and "ENTITIES" in data: # Exists but not a dict
+                print(f"Error: 'ENTITIES' key in {yaml_file_path} is not a dictionary.", file=sys.stderr)
+                # entities_dict remains {}
+            elif data: # Data loaded but ENTITIES key missing
+                print(f"Error: 'ENTITIES' key not found in {yaml_file_path}.", file=sys.stderr)
+                # entities_dict remains {}
+            else: # Data could not be loaded or is empty
+                print(f"Error: No data loaded from {yaml_file_path} or data is empty.", file=sys.stderr)
+                return # Critical error, cannot proceed
 
-    # Populate the global list of known entity names
-    populate_known_entities(entities_dict)
+        except FileNotFoundError:
+            print(f"Error: YAML file not found at {yaml_file_path}", file=sys.stderr)
+            return
+        except Exception as e:
+            print(f"Error parsing YAML file '{yaml_file_path}': {e}", file=sys.stderr)
+            return
 
-    # Generate and print DTD Entities
-    dtd_entities = generate_dtd_entities(entities_dict)
-    print("<!DOCTYPE PLUGIN [")
-    for entity_str in dtd_entities:
-        print(f"  {entity_str}")
-    print("]>\n")
+        # Populate the global list of known entity names
+        populate_known_entities(entities_dict)
 
-    # Generate and print <PLUGIN> tag
-    plugin_attributes = []
-    for key, value in entities_dict.items(): # Iterate through key-value pairs
-        attr_name = str(key)
-        # Get the raw value from entities_dict. smart_escape_preserving_embedded will convert to str.
-        escaped_value = smart_escape_preserving_embedded(value, is_attribute=True)
-        plugin_attributes.append(f'{attr_name}="{escaped_value}"')
+        # Generate and print DTD Entities
+        dtd_entities = generate_dtd_entities(entities_dict)
+        print("<!DOCTYPE PLUGIN [")
+        for entity_str in dtd_entities:
+            print(f"  {entity_str}")
+        print("]>\n")
 
-    # Ensure there's a space after <PLUGIN if there are attributes
-    if plugin_attributes:
-        plugin_tag_str = "<PLUGIN " + " ".join(plugin_attributes) + ">\n"
-    else:
-        plugin_tag_str = "<PLUGIN>" # Or "<PLUGIN />" if that's preferred for no attributes
-    print(plugin_tag_str)
+        # Generate and print <PLUGIN> tag
+        plugin_attributes = []
+        for key, value in entities_dict.items(): # Iterate through key-value pairs
+            attr_name = str(key)
+            # Get the raw value from entities_dict. smart_escape_preserving_embedded will convert to str.
+            escaped_value = smart_escape_preserving_embedded(value, is_attribute=True)
+            plugin_attributes.append(f'{attr_name}="{escaped_value}"')
 
-    # Process <CHANGES> block
-    if data and "CHANGES" in data:
-        changes_file_path = data["CHANGES"]
-        if isinstance(changes_file_path, str):
-            try:
-                with open(changes_file_path, 'r') as f_changes:
-                    changes_content = f_changes.read()
-                print("<CHANGES>")
-                print(changes_content, end='')
-                print("</CHANGES>\n")
-            except FileNotFoundError:
-                print(f"Error: Changes file '{changes_file_path}' specified in 'CHANGES' key not found.", file=sys.stderr)
-            except Exception as e:
-                print(f"Error reading changes file '{changes_file_path}': {e}", file=sys.stderr)
+        # Ensure there's a space after <PLUGIN if there are attributes
+        if plugin_attributes:
+            plugin_tag_str = "<PLUGIN " + " ".join(plugin_attributes) + ">" # Removed \n
         else:
-            print(f"Error: Value of 'CHANGES' key must be a string (filepath), but found {type(changes_file_path)}.", file=sys.stderr)
+            plugin_tag_str = "<PLUGIN>"
+        print(plugin_tag_str)
 
-    # Process FILE list
-    if data and "FILE" in data and isinstance(data["FILE"], list):
-        file_list = data["FILE"] # This is a CommentedSeq
-        for item_idx, file_item in enumerate(file_list):
-            if not isinstance(file_item, dict): # In ruamel.yaml, dicts are CommentedMap
-                print(f"Warning: Item in FILE list is not a dictionary: {file_item}", file=sys.stderr)
-                continue
+        # Process <CHANGES> block
+        if data and "CHANGES" in data:
+            changes_file_path = data["CHANGES"]
+            if isinstance(changes_file_path, str):
+                try:
+                    with open(changes_file_path, 'r') as f_changes:
+                        changes_content = f_changes.read()
+                    print("<CHANGES>")
+                    print(changes_content) # Removed end='', let print add newline
+                    print("</CHANGES>")   # Removed \n from string
+                except FileNotFoundError:
+                    print(f"Error: Changes file '{changes_file_path}' specified in 'CHANGES' key not found.", file=sys.stderr)
+                except Exception as e:
+                    print(f"Error reading changes file '{changes_file_path}': {e}", file=sys.stderr)
+            else:
+                print(f"Error: Value of 'CHANGES' key must be a string (filepath), but found {type(changes_file_path)}.", file=sys.stderr)
 
-            comment_str = None
-            # Try to get comments attached to the sequence item
-            # file_list.ca.items is a dictionary where keys are item indices
-            if item_idx in file_list.ca.items:
-                comment_info_for_item = file_list.ca.items[item_idx]
-                # comment_info_for_item can be a list: [comment_before_marker, comment_after_marker, comment_after_value, comment_on_next_line]
-                # For comments like '- # Comment Text', it's typically after the marker. So, index [1].
-                if comment_info_for_item and len(comment_info_for_item) > 1 and comment_info_for_item[1]:
-                    comment_tokens = comment_info_for_item[1]
-                    if comment_tokens:
-                        # A comment might be a list of CommentToken objects
-                        raw_comment_text = "".join([ct.value for ct in comment_tokens]).strip()
-                        if raw_comment_text.startswith("#"):
-                            comment_text = raw_comment_text[1:].strip()
-                            comment_str = f"<!-- {comment_text} -->"
+        # Process FILE list
+        if data and "FILE" in data and isinstance(data["FILE"], list):
+            file_list = data["FILE"] # This is a CommentedSeq
+            for item_idx, file_item in enumerate(file_list):
+                if not isinstance(file_item, dict): # In ruamel.yaml, dicts are CommentedMap
+                    print(f"Warning: Item in FILE list is not a dictionary: {file_item}", file=sys.stderr)
+                    continue
 
-            if comment_str:
-                print(comment_str)
+                comment_str = None
+                # Try to get comments attached to the sequence item
+                # file_list.ca.items is a dictionary where keys are item indices
+                if item_idx in file_list.ca.items:
+                    comment_info_for_item = file_list.ca.items[item_idx]
+                    # comment_info_for_item can be a list: [comment_before_marker, comment_after_marker, comment_after_value, comment_on_next_line]
+                    # For comments like '- # Comment Text', it's typically after the marker. So, index [1].
+                    if comment_info_for_item and len(comment_info_for_item) > 1 and comment_info_for_item[1]:
+                        comment_tokens = comment_info_for_item[1]
+                        if comment_tokens:
+                            # A comment might be a list of CommentToken objects
+                            raw_comment_text = "".join([ct.value for ct in comment_tokens]).strip()
+                            if raw_comment_text.startswith("#"):
+                                comment_text = raw_comment_text[1:].strip()
+                                comment_str = f"<!-- {comment_text} -->"
 
-            attributes = []
-            # Skip if file_item is empty (e.g. a list item that's just a comment placeholder)
-            if not file_item and not (item_idx in file_list.ca.items and file_list.ca.items[item_idx][1]): # ensure it's not just a comment
-                 # If file_item is empty AND it doesn't have an associated comment, then skip.
-                 # If it has a comment, it will be printed, and then we'd print an empty <FILE /> if we don't continue.
-                 # The goal is to not print <FILE /> for truly empty items.
-                 # A file_item that is just a comment in YAML (e.g. '- # Just a comment line') results in an empty file_item (None).
-                 # In ruamel.yaml, an empty item in a sequence that only had a comment might result in file_item being None.
-                 # The check `if not isinstance(file_item, dict)` handles `None` items.
-                 # If file_item is an empty dict `{}`, it will not be skipped by `isinstance`.
-                 if not file_item: # file_item is an empty dict {}
-                    if not comment_str: # And no comment was printed for it
-                        continue # Skip printing <FILE /> for a truly empty item {} that had no comment
-                    # If there was a comment, an empty <FILE /> might be desired by some. For now, let's print it.
+                if comment_str:
+                    print(comment_str)
 
-            attribute_strings = []
-            generic_child_tag_strings = [] # Renamed from child_tag_strings
-            inline_key_info = None
-            cdata_key_info = None
-            key_order_counter = 0
+                attributes = []
+                # Skip if file_item is empty (e.g. a list item that's just a comment placeholder)
+                if not file_item and not (item_idx in file_list.ca.items and file_list.ca.items[item_idx][1]): # ensure it's not just a comment
+                     # If file_item is empty AND it doesn't have an associated comment, then skip.
+                     # If it has a comment, it will be printed, and then we'd print an empty <FILE /> if we don't continue.
+                     # The goal is to not print <FILE /> for truly empty items.
+                     # A file_item that is just a comment in YAML (e.g. '- # Just a comment line') results in an empty file_item (None).
+                     # In ruamel.yaml, an empty item in a sequence that only had a comment might result in file_item being None.
+                     # The check `if not isinstance(file_item, dict)` handles `None` items.
+                     # If file_item is an empty dict `{}`, it will not be skipped by `isinstance`.
+                     if not file_item: # file_item is an empty dict {}
+                        if not comment_str: # And no comment was printed for it
+                            continue # Skip printing <FILE /> for a truly empty item {} that had no comment
+                        # If there was a comment, an empty <FILE /> might be desired by some. For now, let's print it.
 
-            for key, value in file_item.items(): # Single loop for keys
-                key_order_counter += 1
-                key_str = str(key)
+                attribute_strings = []
+                generic_child_tag_strings = [] # Renamed from child_tag_strings
+                inline_key_info = None
+                cdata_key_info = None
+                key_order_counter = 0
 
-                if key_str == 'INLINE':
-                    inline_key_info = {'path': str(value), 'order': key_order_counter}
-                    # INLINE content processing is deferred
-                elif key_str == 'CDATA':
-                    cdata_key_info = {'path': str(value), 'order': key_order_counter}
-                    # CDATA content processing is deferred
-                elif key_str.startswith('@'):
-                    attr_name = key_str[1:]
-                    attribute_strings.append(f'{attr_name}="{smart_escape_preserving_embedded(value, is_attribute=True)}"')
-                else:
-                    # This key is for a generic child tag (URL, MD5, SpecialTag, etc.)
-                    tag_name = key_str
-                    escaped_content = smart_escape_preserving_embedded(value, is_attribute=False)
-                    generic_child_tag_strings.append(f"<{tag_name}>{escaped_content}</{tag_name}>")
+                for key, value in file_item.items(): # Single loop for keys
+                    key_order_counter += 1
+                    key_str = str(key)
 
-            # --- INLINE/CDATA Decision Logic ---
-            final_inline_tag_string = None
+                    if key_str == 'INLINE':
+                        inline_key_info = {'path': str(value), 'order': key_order_counter}
+                        # INLINE content processing is deferred
+                    elif key_str == 'CDATA':
+                        cdata_key_info = {'path': str(value), 'order': key_order_counter}
+                        # CDATA content processing is deferred
+                    elif key_str.startswith('@'):
+                        attr_name = key_str[1:]
+                        attribute_strings.append(f'{attr_name}="{smart_escape_preserving_embedded(value, is_attribute=True)}"')
+                    else:
+                        # This key is for a generic child tag (URL, MD5, SpecialTag, etc.)
+                        tag_name = key_str
+                        escaped_content = smart_escape_preserving_embedded(value, is_attribute=False)
+                        generic_child_tag_strings.append(f"<{tag_name}>")
+                        generic_child_tag_strings.append(escaped_content)
+                        generic_child_tag_strings.append(f"</{tag_name}>")
 
-            file_item_identifier = f"item at index {item_idx}"
-            # Try to get @Name for better identifier in warnings
-            for attr_str in attribute_strings: # attribute_strings is like ['Name="val"', 'Mode="val"']
-                if attr_str.startswith('Name="'):
-                    # Extract value from Name="value"
-                    name_val = attr_str[len('Name="'):-1] # Remove Name=" and trailing "
-                    file_item_identifier = f"FILE item with @Name='{name_val}'"
-                    break
+                # --- INLINE/CDATA Decision Logic ---
+            # final_inline_tag_string = None # No longer needed
 
-            if inline_key_info and cdata_key_info:
-                print(f"Warning: {file_item_identifier} has both INLINE and CDATA keys. Using the one that appears last in the YAML.", file=sys.stderr)
-                if cdata_key_info['order'] > inline_key_info['order']:
-                    # CDATA is last, use CDATA
+                file_item_identifier = f"item at index {item_idx}"
+                # Try to get @Name for better identifier in warnings
+                for attr_str in attribute_strings: # attribute_strings is like ['Name="val"', 'Mode="val"']
+                    if attr_str.startswith('Name="'):
+                        # Extract value from Name="value"
+                        name_val = attr_str[len('Name="'):-1] # Remove Name=" and trailing "
+                        file_item_identifier = f"FILE item with @Name='{name_val}'"
+                        break
+
+                if inline_key_info and cdata_key_info:
+                    print(f"Warning: {file_item_identifier} has both INLINE and CDATA keys. Using the one that appears last in the YAML.", file=sys.stderr)
+                    if cdata_key_info['order'] > inline_key_info['order']:
+                        # CDATA is last, use CDATA
+                        try:
+                            with open(cdata_key_info['path'], 'r') as f_cdata:
+                                raw_content = f_cdata.read()
+                        generic_child_tag_strings.append("<INLINE>")
+                        generic_child_tag_strings.append(f"<![CDATA[{raw_content}]]>")
+                        generic_child_tag_strings.append("</INLINE>")
+                        except FileNotFoundError:
+                            raw_content = f"<!-- Error: CDATA file not found: {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)} -->"
+                        generic_child_tag_strings.append("<INLINE>")
+                        generic_child_tag_strings.append(raw_content)
+                        generic_child_tag_strings.append("</INLINE>")
+                        except Exception as e:
+                            raw_content = f"<!-- Error reading CDATA file {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
+                        generic_child_tag_strings.append("<INLINE>")
+                        generic_child_tag_strings.append(raw_content)
+                        generic_child_tag_strings.append("</INLINE>")
+                    else:
+                        # INLINE is last (or same order, implies INLINE first if stable sort, or as per dict order), use INLINE
+                        try:
+                            with open(inline_key_info['path'], 'r') as f_inline:
+                                raw_content = f_inline.read()
+                        generic_child_tag_strings.append("<INLINE>")
+                        generic_child_tag_strings.append(std_escape(raw_content))
+                        generic_child_tag_strings.append("</INLINE>")
+                        except FileNotFoundError:
+                            raw_content = f"<!-- Error: INLINE file not found: {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)} -->"
+                        generic_child_tag_strings.append("<INLINE>")
+                        generic_child_tag_strings.append(raw_content)
+                        generic_child_tag_strings.append("</INLINE>")
+                        except Exception as e:
+                            raw_content = f"<!-- Error reading INLINE file {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
+                        generic_child_tag_strings.append("<INLINE>")
+                        generic_child_tag_strings.append(raw_content)
+                        generic_child_tag_strings.append("</INLINE>")
+
+                elif cdata_key_info:
+                    # Only CDATA found
                     try:
                         with open(cdata_key_info['path'], 'r') as f_cdata:
                             raw_content = f_cdata.read()
-                        final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
+                    generic_child_tag_strings.append("<INLINE>")
+                    generic_child_tag_strings.append(f"<![CDATA[{raw_content}]]>")
+                    generic_child_tag_strings.append("</INLINE>")
                     except FileNotFoundError:
                         raw_content = f"<!-- Error: CDATA file not found: {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)} -->"
-                        final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>" # Wrap error in CDATA too
+                    generic_child_tag_strings.append("<INLINE>")
+                    generic_child_tag_strings.append(raw_content)
+                    generic_child_tag_strings.append("</INLINE>")
                     except Exception as e:
                         raw_content = f"<!-- Error reading CDATA file {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
-                        final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
-                else:
-                    # INLINE is last (or same order, implies INLINE first if stable sort, or as per dict order), use INLINE
+                    generic_child_tag_strings.append("<INLINE>")
+                    generic_child_tag_strings.append(raw_content)
+                    generic_child_tag_strings.append("</INLINE>")
+
+                elif inline_key_info:
+                    # Only INLINE found
                     try:
                         with open(inline_key_info['path'], 'r') as f_inline:
                             raw_content = f_inline.read()
-                        final_inline_tag_string = f"<INLINE>{std_escape(raw_content)}</INLINE>"
+                    generic_child_tag_strings.append("<INLINE>")
+                    generic_child_tag_strings.append(std_escape(raw_content))
+                    generic_child_tag_strings.append("</INLINE>")
                     except FileNotFoundError:
                         raw_content = f"<!-- Error: INLINE file not found: {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)} -->"
-                        final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>" # Error is already an XML comment
+                    generic_child_tag_strings.append("<INLINE>")
+                    generic_child_tag_strings.append(raw_content)
+                    generic_child_tag_strings.append("</INLINE>")
                     except Exception as e:
                         raw_content = f"<!-- Error reading INLINE file {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
-                        final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>"
+                    generic_child_tag_strings.append("<INLINE>")
+                    generic_child_tag_strings.append(raw_content)
+                    generic_child_tag_strings.append("</INLINE>")
 
-            elif cdata_key_info:
-                # Only CDATA found
-                try:
-                    with open(cdata_key_info['path'], 'r') as f_cdata:
-                        raw_content = f_cdata.read()
-                    final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
-                except FileNotFoundError:
-                    raw_content = f"<!-- Error: CDATA file not found: {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)} -->"
-                    final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
-                except Exception as e:
-                    raw_content = f"<!-- Error reading CDATA file {smart_escape_preserving_embedded(cdata_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
-                    final_inline_tag_string = f"<INLINE><![CDATA[{raw_content}]]></INLINE>"
+                # Construct and print the <FILE> tag
+            # Construct <FILE ...> start tag
+            file_start_tag = "<FILE"
+                if attribute_strings:
+                file_start_tag += " " + " ".join(attribute_strings)
 
-            elif inline_key_info:
-                # Only INLINE found
-                try:
-                    with open(inline_key_info['path'], 'r') as f_inline:
-                        raw_content = f_inline.read()
-                    final_inline_tag_string = f"<INLINE>{std_escape(raw_content)}</INLINE>"
-                except FileNotFoundError:
-                    raw_content = f"<!-- Error: INLINE file not found: {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)} -->"
-                    final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>"
-                except Exception as e:
-                    raw_content = f"<!-- Error reading INLINE file {smart_escape_preserving_embedded(inline_key_info['path'], is_attribute=False)}: {smart_escape_preserving_embedded(str(e), is_attribute=False)} -->"
-                    final_inline_tag_string = f"<INLINE>{raw_content}</INLINE>"
+            if not generic_child_tag_strings:
+                # attribute_strings or file_item check was to prevent empty <FILE /> for items that were only comments.
+                # This should be implicitly handled by the earlier `continue` for such items.
+                # If file_item is an empty dict {} it should print <FILE />.
+                print(file_start_tag + " />")
+            else: # Has child tags
+                print(file_start_tag + ">") # Opening <FILE ...> tag
 
-            if final_inline_tag_string:
-                generic_child_tag_strings.append(final_inline_tag_string) # Add to other children like URL, MD5
+                # Print children (generic tags, INLINE content)
+                for child_part in generic_child_tag_strings:
+                    print(child_part)
 
-            # Construct and print the <FILE> tag
-            file_tag_parts = ["<FILE"]
-            if attribute_strings:
-                file_tag_parts.append(" " + " ".join(attribute_strings))
+                print("</FILE>") # Closing </FILE> tag
 
-            if not generic_child_tag_strings: # Now includes the final INLINE tag if one was generated
-                if attribute_strings or file_item:
-                    file_tag_parts.append(" />")
-                    print("".join(file_tag_parts))
-            else: # Has child tags (could be generic ones, or the INLINE, or both)
-                file_tag_parts.append(">")
-                file_tag_parts.append("".join(generic_child_tag_strings))
-                file_tag_parts.append("</FILE>\n")
-                print("".join(file_tag_parts))
-
-    elif data and "FILE" in data: # FILE key exists but is not a list
-        print(f"Error: 'FILE' key in {yaml_file_path} exists but is not a list.", file=sys.stderr)
+        elif data and "FILE" in data: # FILE key exists but is not a list
+            print(f"Error: 'FILE' key in {yaml_file_path} exists but is not a list.", file=sys.stderr)
+    finally:
+        print("</PLUGIN>")
 
 
 if __name__ == "__main__":
