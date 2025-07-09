@@ -68,3 +68,9 @@ This section defines the files and is the most complicated and confusing part of
   `INLINE` The location of the script to inject into the plugin file. With INLINE, entities are expanded. Using the above YAML as an example, if your script has `echo &MD5;`, it will be expanded to `echo b31ca4f4cc86325d132739c93f79b922`. This can be useful but having XML entities in your script can make troubleshooting and testing your scripts more difficult.
   
   `CDATA` The location of the script to inject into the plugin file. Simply a special variant of INLINE that does not expand entities. Everything in your script is injected into the plugin file as-is.
+
+**Usage**
+
+```
+python upg.py test.yaml
+```
