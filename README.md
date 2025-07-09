@@ -1,4 +1,4 @@
-Plugin files in Unraid are essentially XML files but they can be difficult to read, especially if you include inline scripts. The version and MD5 also need to be updated every update, which can be a small chore. This script will create a *.plg for Unraid from a supplied YAML file. A sample YAML file is included for reference and using it should be self-evident:
+Plugin files in Unraid are just XML files but they can be difficult to manage. This script aims to address that. It will create a *.plg for Unraid from a supplied YAML file and other source files. A sample YAML file is included for reference and using it should be self-evident but documentation is below:
 
 ```
 ENTITIES:
