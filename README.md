@@ -41,7 +41,7 @@ FILE:
 
 **ENTITIES**
 
-The entities section looks pretty much the same as it does in the plg file. It's essentially the variables for your plugin file. As you can see, an entity can reference another entity as long as it comes before it. If the `version` entity is absent, the script will download current version of the plugin (specified as `pluginURL`) and automatically add the correct version to the entites in the standard date/letter version format that Unraid plugins use. If the MD5 entity is absent, it will download the source package specified in `packageURL`, calculate the hash, and add the MD5 entity.
+The entities section looks pretty much the same as it does in the plg file. It's essentially the variables for your plugin file. As you can see, an entity can reference another entity as long as it comes before it. If the `version` entity is absent, the script will download the current version of the plugin (specified as `pluginURL`) and automatically add the correct next version to the entites in the standard date/letter version format that Unraid plugins use. If the MD5 entity is absent, it will download the source package specified in `packageURL`, calculate the hash, and add the MD5 entity.
 
 **CHANGES**
 
