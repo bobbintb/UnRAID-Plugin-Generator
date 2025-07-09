@@ -51,23 +51,23 @@ This is the location of the change log. It can be absolute or relative to workin
 
 This section defines the files and is the most complicated and confusing part of a plugin file. This script aims to significantly reduce that.
 
-  `-` Denotes the start of a file entry. 
+  `-`  - Denotes the start of a file entry. 
 
-  `#` Interpreted as comments and are retained when converted to the plg file.
+  `#` - Interpreted as comments and are retained when converted to the plg file.
 
-  `@` Interpreted as an attribute or method for the XML tag. 
+  `@` - Interpreted as an attribute or method for the XML tag. 
   
-  `@Method` Valid methods are `install` and `remove`. File entries with the `install` method will be ran when the plugin is installed and file entries with the `remove` method will be ran when the plugin is removed. Updating a plugin will run `remove` and `install`. Should not be used with `@Name`.
+  `@Method` - Valid methods are `install` and `remove`. File entries with the `install` method will be ran when the plugin is installed and file entries with the `remove` method will be ran when the plugin is removed. Updating a plugin will run `remove` and `install`. Should not be used with `@Name`.
   
-  `@Name` Used to create a file in the Unraid filesystem at the specified location. Requires either `INLINE` or `CDATA`. The contents of the file specified by `INLINE` or `CDATA` will be saved to the location on Unirad specified in `@Name`. Should not be used with `@Method`.
+  `@Name` - Used to create a file in the Unraid filesystem at the specified location. Requires either `INLINE` or `CDATA`. The contents of the file specified by `INLINE` or `CDATA` will be saved to the location on Unirad specified in `@Name`. Should not be used with `@Method`.
   
-  `@Mode` Optionally sets the permissions of a file when used with `@Name`.
+  `@Mode` - Optionally sets the permissions of a file when used with `@Name`.
   
-  `@Run` The command or file to run. If running a script, set it to `/bin/bash` and use `INLINE` or `CDATA` as the location of the script to inject into the plugin file. This will run the script without saving it to disk.
+  `@Run` - The command or file to run. If running a script, set it to `/bin/bash` and use `INLINE` or `CDATA` as the location of the script to inject into the plugin file. This will run the script without saving it to disk.
   
-  `INLINE` The location of the script to inject into the plugin file. With INLINE, entities are expanded. Using the above YAML as an example, if your script has `echo &MD5;`, it will be expanded to `echo b31ca4f4cc86325d132739c93f79b922`. This can be useful but having XML entities in your script can make troubleshooting and testing your scripts more difficult.
+  `INLINE` - The location of the script to inject into the plugin file. With INLINE, entities are expanded. Using the above YAML as an example, if your script has `echo &MD5;`, it will be expanded to `echo b31ca4f4cc86325d132739c93f79b922`. This can be useful but having XML entities in your script can make troubleshooting and testing your scripts more difficult.
   
-  `CDATA` The location of the script to inject into the plugin file. Simply a special variant of INLINE that does not expand entities. Everything in your script is injected into the plugin file as-is.
+  `CDATA` - The location of the script to inject into the plugin file. Simply a special variant of INLINE that does not expand entities. Everything in your script is injected into the plugin file as-is.
 
 **Usage**
 
