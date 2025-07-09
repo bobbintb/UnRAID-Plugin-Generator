@@ -1,6 +1,9 @@
 import hashlib
 import re
+import sys
 import urllib.request
+from pathlib import Path
+
 from ruamel.yaml import YAML
 from lxml import etree
 from datetime import datetime
@@ -111,7 +114,7 @@ def build_files(files):
                     elem.append(inline)
         root.append(elem)
 
-with open("test.yaml") as f:
+with open(sys.argv[1]) as f:
     data = YAML().load(f)
 
 yamlentities = data.get("ENTITIES", {})
@@ -137,6 +140,4 @@ print("    Parsing FILES...")
 build_files(data['FILE'])
 print("        ...done.")
 
-print(etree.tostring(root, pretty_print=True, xml_declaration=True, standalone=True, doctype=dtd, encoding="utf-8").decode())
-
-
+with open(Path(sys.argv[1]).with_suffix('.plg'), "w", encoding="utf-8") as f: f.write(etree.tostring(root, pretty_print=True, xml_declaration=True, standalone=True, doctype=dtd, encoding="utf-8").decode())
