@@ -10,6 +10,23 @@ Usage:
 import tomlkit
 import sys
 from pathlib import Path
+from datetime import datetime
+import hashlib
+import urllib.request
+
+
+def calculate_md5_from_url(url):
+    """Download a file from URL and calculate its MD5 hash."""
+    try:
+        print(f"Downloading {url} to calculate MD5...")
+        with urllib.request.urlopen(url) as response:
+            md5_hash = hashlib.md5()
+            while chunk := response.read(8192):
+                md5_hash.update(chunk)
+        return md5_hash.hexdigest()
+    except Exception as e:
+        print(f"Error downloading file: {e}")
+        return None
 
 
 def read_file_content(filepath):
@@ -146,6 +163,27 @@ def toml_to_plugin_xml(toml_path, output_path=None, base_path="."):
     entities = doc.get('ENTITIES', {})
     changes = doc.get('CHANGES', {})
     files = doc.get('FILE', [])
+    
+    # Auto-generate version if not present
+    if 'version' not in entities:
+        now = datetime.now()
+        version = f"{now.year}.{now.month:02d}.{now.day:02d}.{now.hour:02d}{now.minute:02d}"
+        entities['version'] = version
+        print(f"Auto-generated version: {version}")
+    
+    # Auto-generate MD5 if not present
+    if 'MD5' not in entities and 'packageURL' in entities:
+        # Expand entity references in packageURL
+        package_url = entities['packageURL']
+        for key, value in entities.items():
+            package_url = package_url.replace(f'&{key};', value)
+        
+        md5 = calculate_md5_from_url(package_url)
+        if md5:
+            entities['MD5'] = md5
+            print(f"Auto-generated MD5: {md5}")
+        else:
+            print("Warning: Failed to generate MD5 hash")
     
     # Build XML
     xml_lines = []
