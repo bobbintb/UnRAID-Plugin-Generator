@@ -61,7 +61,7 @@ CDATA = "./.plugin/remove.sh"
 
 ### ENTITIES
 
-The `[ENTITIES]` section defines variables for your plugin file, similar to XML entities in the `.plg` file. Entity references use XML syntax (`&entity;`) and can reference other entities defined earlier in the section.
+The `[ENTITIES]` section defines variables for your plugin file, similar to XML entities in the `.plg` file. Entity references use XML syntax (`&entity;`) and can reference other entities defined earlier in the section. If `version` is not included, the version will be automatically generated in the standard format (yyyy.mm.dd.hhmm). If the MD5 is not included, the `packageURL` will automatically be downloaded and the MD5 will be generated.
 
 All entities defined here will be:
 1. Added to the XML DOCTYPE declaration
