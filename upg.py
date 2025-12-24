@@ -76,15 +76,21 @@ def create_slackware_package(source_path, output_dir=None):
     
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Download makepkg script
-    makepkg_url = "https://mirrors.slackware.com/slackware/slackware64-15.0/source/a/pkgtools/scripts/makepkg"
+    # Check if makepkg already exists in script directory
+    script_dir = Path(__file__).parent if '__file__' in globals() else Path.cwd()
+    makepkg_path = script_dir / 'makepkg'
     
-    with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='_makepkg') as tmp:
-        makepkg_path = tmp.name
+    if makepkg_path.exists():
+        print(f"Using existing makepkg from {makepkg_path}")
+    else:
+        # Download makepkg script
+        makepkg_url = "https://mirrors.slackware.com/slackware/slackware64-15.0/source/a/pkgtools/scripts/makepkg"
+        
+        print(f"Downloading makepkg from {makepkg_url}...")
         try:
-            print(f"Downloading makepkg from {makepkg_url}...")
             with urllib.request.urlopen(makepkg_url) as response:
-                tmp.write(response.read())
+                makepkg_path.write_bytes(response.read())
+            print(f"Downloaded makepkg to {makepkg_path}")
         except Exception as e:
             print(f"Error downloading makepkg: {e}")
             return None
@@ -93,22 +99,32 @@ def create_slackware_package(source_path, output_dir=None):
     os.chmod(makepkg_path, os.stat(makepkg_path).st_mode | stat.S_IEXEC)
     
     try:
-        # Run makepkg
+        # makepkg must be run from inside the package directory
+        # The package will be created in the parent directory
+        package_name = f'{source_path.name}.txz'
         print(f"Creating Slackware package from {source_path}...")
+        print(f"Running: {makepkg_path} -l y -c n ../{package_name}")
+        print(f"Working directory: {source_path}")
+        
         result = subprocess.run(
-            [makepkg_path, '-l', 'y', '-c', 'n', f'{source_path.name}.txz'],
+            [makepkg_path, '-l', 'y', '-c', 'n', f'../{package_name}'],
             cwd=source_path,
             capture_output=True,
             text=True
         )
         
         if result.returncode != 0:
-            print(f"Error running makepkg:")
-            print(result.stderr)
+            print(f"Error running makepkg (exit code {result.returncode}):")
+            if result.stdout:
+                print("STDOUT:", result.stdout)
+            if result.stderr:
+                print("STDERR:", result.stderr)
             return None
         
-        # Find the created package
-        package_file = source_path / f'{source_path.name}.txz'
+        print("makepkg output:", result.stdout)
+        
+        # Package is created in parent directory
+        package_file = source_path.parent / package_name
         
         if package_file.exists():
             # Move to output directory if different
@@ -121,14 +137,12 @@ def create_slackware_package(source_path, output_dir=None):
             return package_file
         else:
             print("Error: Package file was not created")
+            print(f"Expected package at: {package_file}")
             return None
             
-    finally:
-        # Clean up temporary makepkg script
-        try:
-            os.unlink(makepkg_path)
-        except:
-            pass
+    except Exception as e:
+        print(f"Error creating package: {e}")
+        return None
 
 
 def read_file_content(filepath):
