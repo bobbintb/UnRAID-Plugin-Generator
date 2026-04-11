@@ -1,6 +1,6 @@
 # UnRAID Plugin Generator
 
-Plugin files in Unraid are just XML files but they can be difficult to manage. This script addresses that by creating a `*.plg` file for Unraid from a TOML configuration file and other source files. A sample TOML file is included for reference.
+This tool converts **TOML** configurations into Unraid-compatible `.plg` XML files. It automates tedious tasks like Slackware packaging, MD5 checksum calculation, versioning, and script embedding.
 
 ## Requirements
 
@@ -8,118 +8,111 @@ Plugin files in Unraid are just XML files but they can be difficult to manage. T
 pip install tomlkit
 ```
 
-## Example TOML Configuration
+## Comprehensive TOML Example
+
+This example demonstrates a complex plugin structure including web UI files, binaries, and system scripts.
 
 ```toml
 [ENTITIES]
-name = "bobbintb.system.dirt"
-author = "bobbintb"
-repo = "UnRAID-DiRT"
-tag = "test"
-launch = "Settings/Deduplication in Real-Time"
+name = "my.awesome.plugin"
+author = "developer"
+repo = "unraid-plugin-repo"
+tag = "v1.0.0"
+launch = "Settings/MyPlugin"
+# Note: version and MD5 omitted to trigger auto-generation
 pluginURL = "https://github.com/&author;/&repo;/releases/download/&tag;/&name;.plg"
 packageURL = "https://github.com/&author;/&repo;/releases/download/&tag;/&name;.txz"
-source = "/boot/config/plugins/&name;/&name;"
-icon = "fa-search-minus"
-min = "6.1.9"
-version = "2025.02.11"
-MD5 = "b31ca4f4cc86325d132739c93f79b922"
+icon = "fa-shield"
+min = "6.12.0"
 
 [CHANGES]
-File = "./README.md"
+File = "./CHANGELOG.md"
 
-# --- FILES ---
+# --- SYSTEM FILES ---
 
-# 1. Startup Script
+# 1. Configuration File (Only created if missing)
 [[FILE]]
-Attr = { Name = "/etc/rc.d/rc.dirt", Mode = "0775" }
-INLINE = "./.plugin/rc.dirt"
+Attr = { Name = "/boot/config/plugins/&name;/&name;.cfg", Mode = "0664" }
+SCRIPT_RAW = "./assets/default_config.cfg"
 
-# 2. Pre-Install Script
+# 2. Icon File
 [[FILE]]
-Attr = { Run = "/bin/bash", Method = "install" }
-INLINE = "./.plugin/pre-install.sh"
+Attr = { Name = "/usr/local/emhttp/plugins/&name;/images/&name;.png" }
+URL = "https://raw.githubusercontent.com/&author;/&repo;/&tag;/assets/icon.png"
 
-# 3. Source Package
+# --- INSTALLATION ---
+
+# 3. Main Slackware Package
+# The script will auto-calculate &MD5; if it's used here but missing from [ENTITIES]
 [[FILE]]
 Attr = { Name = "&source;.txz", Run = "upgradepkg --install-new --reinstall" }
 URL = "&packageURL;"
 MD5 = "&MD5;"
 
-# 4. Post-Install Script
+# 4. Pre-Install Logic (Entity-aware)
 [[FILE]]
 Attr = { Run = "/bin/bash", Method = "install" }
-INLINE = "./.plugin/post-install.sh"
+SCRIPT_TEMPLATE = "./scripts/pre-install.sh"
 
-# 5. Removal Script
+# --- UNINSTALLATION ---
+
+# 5. Cleanup Script (Literal injection)
 [[FILE]]
 Attr = { Run = "/bin/bash", Method = "remove" }
-CDATA = "./.plugin/remove.sh"
+SCRIPT_RAW = "./scripts/uninstall-cleaner.sh"
 ```
 
-## Configuration Sections
+## Core Functionality
 
-### ENTITIES
+### 1. Smart Entity Management
+The script automatically manages the XML `<!ENTITY>` block:
+* **Auto-Version:** If `version` is missing from `[ENTITIES]`, it generates one based on the current timestamp (`yyyy.mm.dd.hhmm`).
+* **Auto-MD5:** If `MD5` is missing, the script will attempt to hash the file found at `packageURL` or the local package created via the `--package-source` flag.
+* **Variable Injection:** Use `&entityname;` anywhere in your TOML or in files linked via `SCRIPT_TEMPLATE`.
 
-The `[ENTITIES]` section defines variables for your plugin file, similar to XML entities in the `.plg` file. Entity references use XML syntax (`&entity;`) and can reference other entities defined earlier in the section. If `version` is not included, the version will be automatically generated in the standard format (yyyy.mm.dd.hhmm). If the MD5 is not included, the `packageURL` will automatically be downloaded and the MD5 will be generated.
+### 2. Script Embedding Modes
+* **SCRIPT_TEMPLATE:** Reads the local file and injects it into the XML. Unraid **will** parse this for entities (e.g., `echo &version;` becomes `echo 2026.04.11`).
+* **SCRIPT_RAW:** Wraps the file content in a `<![CDATA[ ... ]]>` block. Unraid will treat this as a literal string, which is safer for complex scripts containing characters like `&` or `$`.
 
-All entities defined here will be:
-1. Added to the XML DOCTYPE declaration
-2. Used as attributes in the `<PLUGIN>` tag
-3. Available for reference throughout the plugin using `&entityname;` syntax
+### 3. Automated Packaging
+Using the `--package-source` flag allows you to point to a local directory or a **Git URL**. The script will:
+1. Clone the repository (if a URL is provided).
+2. Download the Slackware `makepkg` utility.
+3. Compress the source into a `.txz` Slackware package.
+4. Move the package to your output directory.
 
-### CHANGES
-
-The `[CHANGES]` section specifies the location of your changelog file:
-- `File` - Path to the changelog (absolute or relative to working directory)
-
-The contents of this file will be embedded in the `<CHANGES>` section of the plugin.
-
-### FILE
-
-The `[[FILE]]` array defines files and operations for the plugin. Each `[[FILE]]` entry represents one file operation.
-
-**Comments** - Standard TOML comments (`#`) are preserved and converted to XML comments in the output.
-
-**Attr** - An inline table of XML attributes for the `<FILE>` tag:
-
-- `Method` - Valid values: `"install"` or `"remove"`. Files with `install` run during plugin installation; files with `remove` run during plugin removal. Should not be used with `Name`.
-
-- `Name` - Creates a file in the Unraid filesystem at the specified location. Requires either `INLINE` or `CDATA`. The contents of the file specified by `INLINE` or `CDATA` will be saved to this location. Should not be used with `Method`.
-
-- `Mode` - Optionally sets the permissions of a file when used with `Name` (e.g., `"0775"`).
-
-- `Run` - The command or file to run. For scripts, set to `"/bin/bash"` and use `INLINE` or `CDATA` to specify the script location. This runs the script without saving it to disk.
-
-**Content Types:**
-
-- `INLINE` - Path to a file whose contents will be injected into the plugin. With `INLINE`, XML entities are expanded. For example, if your script contains `echo &MD5;`, it will be expanded to `echo b31ca4f4cc86325d132739c93f79b922`. This can be useful but may make troubleshooting more difficult.
-
-- `CDATA` - Path to a file whose contents will be injected into the plugin wrapped in `<![CDATA[...]]>`. This prevents entity expansion - everything in your script is injected as-is, making it easier to test and debug scripts independently.
-
-- `URL` - A URL to download (typically used for package files).
-
-- `MD5` - The MD5 hash of a downloaded file for verification.
+---
 
 ## Usage
 
 ```bash
-python toml_to_xml.py config.toml output.plg [base_path]
+python toml_to_xml.py [toml_file] [options]
 ```
 
-**Arguments:**
-- `config.toml` - Input TOML configuration file
-- `output.plg` - Output XML plugin file (optional, prints to stdout if omitted)
-- `base_path` - Base path for resolving relative file paths (default: current directory)
+### Command Line Arguments
+| Argument | Description |
+| :--- | :--- |
+| `-o`, `--output` | Path for the generated `.plg` file. |
+| `-p`, `--package-source` | Path or Git URL to build a Slackware `.txz` from. |
+| `-b`, `--base-path` | Root directory for resolving local file paths (default: `.`). |
+| `--entity KEY=VALUE` | Add/Override an entity (e.g., `--entity tag=v1.1.0`). |
+| `--changes PATH` | Path to the changelog file. |
+| `--file JSON` | Manually add a file entry using a JSON string. |
 
-**Example:**
+### Example Commands
+
+**Build from TOML with local packaging:**
 ```bash
-python toml_to_xml.py plugin.toml bobbintb.system.dirt.plg
+python toml_to_xml.py plugin.toml -p ./src -o plugin.plg
 ```
 
-## Notes
+**Build directly from a remote GitHub repository:**
+```bash
+python toml_to_xml.py plugin.toml -p https://github.com/user/my-plugin -o plugin.plg
+```
 
-- Entity references can reference other entities as long as they appear earlier in the `[ENTITIES]` section
-- Comments in the TOML file are preserved in the XML output
-- File paths in `INLINE`, `CDATA`, and `File` can be absolute or relative to the `base_path`
-- The script uses case-insensitive matching for `INLINE` and `CDATA` keys
+---
+
+## Technical Notes
+* **Comments:** Standard TOML comments (`#`) placed directly above `[[FILE]]` entries are converted into XML comments in the final output.
+* **Permissions:** Use the `Mode` attribute (e.g., `"0775"`) within the `Attr` table to set Linux file permissions during installation.
