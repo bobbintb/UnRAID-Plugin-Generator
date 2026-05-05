@@ -189,9 +189,10 @@ def create_slackware_package(source_path, output_dir=None):
 def read_file_content(filepath):
     """Read content from a file path."""
     path = Path(filepath)
-    if path.exists():
-        return path.read_text()
-    return f"<!-- File not found: {filepath} -->"
+    if not path.exists():
+        print(f"Error: File not found: {filepath}")
+        sys.exit(1)
+    return path.read_text()
 
 
 def extract_comments_map(toml_text):
