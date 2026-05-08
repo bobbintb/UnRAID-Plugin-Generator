@@ -105,30 +105,41 @@ def resolve_package_source(package_source):
 
 def create_slackware_package(source_path, output_dir=None):
     """
-    Create a Slackware package from a directory structure with full debug output.
+    Create a Slackware package with explicit pathing to bypass 'Can't make output' errors.
     """
+    import shutil
     source_path = Path(source_path).resolve()
-    if not source_path.exists():
-        print(f"Error: Source path does not exist: {source_path}")
-        return None
-
+    
     if not source_path.is_dir():
         print(f"Error: Source path is not a directory: {source_path}")
         return None
 
+    # Determine output directory
     if output_dir is None:
         output_dir = source_path.parent
     else:
         output_dir = Path(output_dir).resolve()
-
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    makepkg_url = "https://mirrors.slackware.com/slackware/slackware64-15.0/source/a/pkgtools/scripts/makepkg"
+    # Sanitize package name (Unraid plugins usually prefer the directory name)
+    pkg_name = f"{source_path.name}.txz"
+    final_package_path = output_dir / pkg_name
 
+    # Remove existing package if it exists to prevent makepkg from failing
+    if final_package_path.exists():
+        final_package_path.unlink()
+    
+    # Also check the source dir for a stale file of the same name
+    stale_in_source = source_path / pkg_name
+    if stale_in_source.exists():
+        stale_in_source.unlink()
+
+    makepkg_url = "https://mirrors.slackware.com/slackware/slackware64-15.0/source/a/pkgtools/scripts/makepkg"
+    
     with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='_makepkg') as tmp:
         makepkg_path = tmp.name
         try:
-            print(f"Downloading makepkg from {makepkg_url}...")
+            print(f"Downloading makepkg...")
             with urllib.request.urlopen(makepkg_url) as response:
                 tmp.write(response.read())
         except Exception as e:
@@ -138,13 +149,11 @@ def create_slackware_package(source_path, output_dir=None):
     os.chmod(makepkg_path, os.stat(makepkg_path).st_mode | stat.S_IEXEC)
 
     try:
-        # We use a clean filename for the package to avoid issues with parent dir names
-        pkg_name = f"{source_path.name}.txz"
-        print(f"Creating Slackware package from {source_path}...")
-        
-        # Capture BOTH stdout and stderr to catch the real reason for failure
+        print(f"Creating Slackware package: {pkg_name}")
+        # We pass the absolute path for the output file. 
+        # Slackware's makepkg handles absolute paths better in restricted environments.
         result = subprocess.run(
-            [makepkg_path, '-l', 'y', '-c', 'n', pkg_name],
+            [makepkg_path, '-l', 'y', '-c', 'n', str(final_package_path)],
             cwd=source_path,
             capture_output=True,
             text=True
@@ -157,20 +166,11 @@ def create_slackware_package(source_path, output_dir=None):
             print("--- MAKEPKG ERROR LOG END ---")
             return None
 
-        package_file = source_path / pkg_name
-
-        if package_file.exists():
-            final_path = output_dir / package_file.name
-            if package_file != final_path:
-                # Use shutil for more robust moving across filesystems
-                import shutil
-                shutil.move(str(package_file), str(final_path))
-                package_file = final_path
-
-            print(f"Package created successfully: {package_file}")
-            return package_file
+        if final_package_path.exists():
+            print(f"Package created successfully: {final_package_path}")
+            return final_package_path
         else:
-            print(f"Error: makepkg exited 0 but {pkg_name} was not found.")
+            print(f"Error: makepkg finished but {final_package_path} missing.")
             return None
 
     finally:
