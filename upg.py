@@ -105,14 +105,7 @@ def resolve_package_source(package_source):
 
 def create_slackware_package(source_path, output_dir=None):
     """
-    Create a Slackware package from a directory structure.
-
-    Args:
-        source_path: Path to directory containing package structure
-        output_dir: Directory to place output package (default: source_path parent)
-
-    Returns:
-        Path to created package file, or None on error
+    Create a Slackware package from a directory structure with full debug output.
     """
     source_path = Path(source_path).resolve()
     if not source_path.exists():
@@ -123,7 +116,6 @@ def create_slackware_package(source_path, output_dir=None):
         print(f"Error: Source path is not a directory: {source_path}")
         return None
 
-    # Determine output directory
     if output_dir is None:
         output_dir = source_path.parent
     else:
@@ -131,7 +123,6 @@ def create_slackware_package(source_path, output_dir=None):
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Download makepkg script
     makepkg_url = "https://mirrors.slackware.com/slackware/slackware64-15.0/source/a/pkgtools/scripts/makepkg"
 
     with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='_makepkg') as tmp:
@@ -144,46 +135,47 @@ def create_slackware_package(source_path, output_dir=None):
             print(f"Error downloading makepkg: {e}")
             return None
 
-    # Make makepkg executable
     os.chmod(makepkg_path, os.stat(makepkg_path).st_mode | stat.S_IEXEC)
 
     try:
-        # Run makepkg
+        # We use a clean filename for the package to avoid issues with parent dir names
+        pkg_name = f"{source_path.name}.txz"
         print(f"Creating Slackware package from {source_path}...")
+        
+        # Capture BOTH stdout and stderr to catch the real reason for failure
         result = subprocess.run(
-            [makepkg_path, '-l', 'y', '-c', 'n', f'{source_path.name}.txz'],
+            [makepkg_path, '-l', 'y', '-c', 'n', pkg_name],
             cwd=source_path,
             capture_output=True,
             text=True
         )
 
         if result.returncode != 0:
-            print(f"Error running makepkg:")
-            print(result.stderr)
+            print("--- MAKEPKG ERROR LOG START ---")
+            print("STDOUT:", result.stdout)
+            print("STDERR:", result.stderr)
+            print("--- MAKEPKG ERROR LOG END ---")
             return None
 
-        # Find the created package
-        package_file = source_path / f'{source_path.name}.txz'
+        package_file = source_path / pkg_name
 
         if package_file.exists():
-            # Move to output directory if different
             final_path = output_dir / package_file.name
             if package_file != final_path:
-                package_file.rename(final_path)
+                # Use shutil for more robust moving across filesystems
+                import shutil
+                shutil.move(str(package_file), str(final_path))
                 package_file = final_path
 
-            print(f"Package created: {package_file}")
+            print(f"Package created successfully: {package_file}")
             return package_file
         else:
-            print("Error: Package file was not created")
+            print(f"Error: makepkg exited 0 but {pkg_name} was not found.")
             return None
 
     finally:
-        # Clean up temporary makepkg script
-        try:
+        if os.path.exists(makepkg_path):
             os.unlink(makepkg_path)
-        except:
-            pass
 
 
 def read_file_content(filepath):
