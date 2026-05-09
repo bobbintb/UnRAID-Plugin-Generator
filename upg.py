@@ -103,16 +103,19 @@ def resolve_package_source(package_source):
     return clone_path, tmpdir
 
 
-def create_slackware_package(source_path, output_dir=None):
+def create_slackware_package(source_path, output_dir=None, plugin_name=None):
     """
     Create a Slackware package with explicit pathing to bypass 'Can't make output' errors.
     """
     import shutil
     source_path = Path(source_path).resolve()
-    
+
     if not source_path.is_dir():
         print(f"Error: Source path is not a directory: {source_path}")
         return None
+
+    if not plugin_name:
+        plugin_name = source_path.name
 
     # Determine output directory
     if output_dir is None:
@@ -121,61 +124,63 @@ def create_slackware_package(source_path, output_dir=None):
         output_dir = Path(output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Sanitize package name (Unraid plugins usually prefer the directory name)
-    pkg_name = f"{source_path.name}.txz"
+    pkg_name = f"{plugin_name}.txz"
     final_package_path = output_dir / pkg_name
 
     # Remove existing package if it exists to prevent makepkg from failing
     if final_package_path.exists():
         final_package_path.unlink()
-    
-    # Also check the source dir for a stale file of the same name
-    stale_in_source = source_path / pkg_name
-    if stale_in_source.exists():
-        stale_in_source.unlink()
 
-    makepkg_url = "https://mirrors.slackware.com/slackware/slackware64-15.0/source/a/pkgtools/scripts/makepkg"
-    
-    with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='_makepkg') as tmp:
-        makepkg_path = tmp.name
-        try:
-            print(f"Downloading makepkg...")
-            with urllib.request.urlopen(makepkg_url) as response:
-                tmp.write(response.read())
-        except Exception as e:
-            print(f"Error downloading makepkg: {e}")
-            return None
-
-    os.chmod(makepkg_path, os.stat(makepkg_path).st_mode | stat.S_IEXEC)
-
+    # Build staging directory with proper install tree
+    staging_dir = Path(tempfile.mkdtemp())
     try:
-        print(f"Creating Slackware package: {pkg_name}")
-        # We pass the absolute path for the output file. 
-        # Slackware's makepkg handles absolute paths better in restricted environments.
-        result = subprocess.run(
-            [makepkg_path, '-l', 'y', '-c', 'n', str(final_package_path)],
-            cwd=source_path,
-            capture_output=True,
-            text=True
-        )
+        plugin_dir = staging_dir / "usr" / "local" / "emhttp" / "plugins" / plugin_name
+        plugin_dir.mkdir(parents=True)
+        shutil.copytree(source_path, plugin_dir, dirs_exist_ok=True)
 
-        if result.returncode != 0:
-            print("--- MAKEPKG ERROR LOG START ---")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-            print("--- MAKEPKG ERROR LOG END ---")
-            return None
+        makepkg_url = "https://mirrors.slackware.com/slackware/slackware64-15.0/source/a/pkgtools/scripts/makepkg"
 
-        if final_package_path.exists():
-            print(f"Package created successfully: {final_package_path}")
-            return final_package_path
-        else:
-            print(f"Error: makepkg finished but {final_package_path} missing.")
-            return None
+        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix='_makepkg') as tmp:
+            makepkg_path = tmp.name
+            try:
+                print(f"Downloading makepkg...")
+                with urllib.request.urlopen(makepkg_url) as response:
+                    tmp.write(response.read())
+            except Exception as e:
+                print(f"Error downloading makepkg: {e}")
+                return None
+
+        os.chmod(makepkg_path, os.stat(makepkg_path).st_mode | stat.S_IEXEC)
+
+        try:
+            print(f"Creating Slackware package: {pkg_name}")
+            result = subprocess.run(
+                [makepkg_path, '-l', 'y', '-c', 'n', str(final_package_path)],
+                cwd=staging_dir,
+                capture_output=True,
+                text=True
+            )
+
+            if result.returncode != 0:
+                print("--- MAKEPKG ERROR LOG START ---")
+                print("STDOUT:", result.stdout)
+                print("STDERR:", result.stderr)
+                print("--- MAKEPKG ERROR LOG END ---")
+                return None
+
+            if final_package_path.exists():
+                print(f"Package created successfully: {final_package_path}")
+                return final_package_path
+            else:
+                print(f"Error: makepkg finished but {final_package_path} missing.")
+                return None
+
+        finally:
+            if os.path.exists(makepkg_path):
+                os.unlink(makepkg_path)
 
     finally:
-        if os.path.exists(makepkg_path):
-            os.unlink(makepkg_path)
+        shutil.rmtree(staging_dir, ignore_errors=True)
 
 
 def read_file_content(filepath):
@@ -399,7 +404,11 @@ Examples:
             sys.exit(1)
 
         output_dir = Path(args.base_path) if args.base_path != "." else Path.cwd()
-        package_file = create_slackware_package(package_source_path, output_dir)
+        package_file = create_slackware_package(
+            package_source_path,
+            output_dir,
+            plugin_name=entities.get('name')
+        )
         if not package_file:
             print("Warning: Failed to create Slackware package")
 
